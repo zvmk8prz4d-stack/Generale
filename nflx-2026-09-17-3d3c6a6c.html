@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFLX — Analisi azionaria approfondita | 2026-09-17</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+:root {
+  --bg: #0F172A; --surface: #1E293B; --surface-2: #131C2E; --border: #334155;
+  --text: #F1F5F9; --text-2: #94A3B8; --text-3: #64748B;
+  --green: #10B981; --red: #EF4444; --amber: #F59E0B; --blue: #3B82F6;
+  --green-bg: #064E3B; --red-bg: #7F1D1D; --amber-bg: #451A03; --blue-bg: #1E3A8A;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.55; font-size: 15px; }
+.container { max-width: 1180px; margin: 0 auto; padding: 24px; }
+
+/* Header */
+header { border-bottom: 1px solid var(--border); padding-bottom: 18px; margin-bottom: 20px; }
+.ticker-row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.ticker { font-size: 38px; font-weight: 800; letter-spacing: -0.02em; }
+.company { font-size: 18px; color: var(--text-2); }
+.report-date { margin-left: auto; color: var(--text-3); font-size: 13px; }
+.price-row { display: flex; gap: 22px; margin-top: 10px; flex-wrap: wrap; font-size: 14px; }
+.price-row .item { color: var(--text-2); }
+.price-row .item b { color: var(--text); }
+.chg-pos { color: var(--green); }
+.chg-neg { color: var(--red); }
+
+/* TOC */
+nav.toc { background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 16px; margin-bottom: 20px; font-size: 13.5px; }
+nav.toc a { color: var(--blue); text-decoration: none; margin-right: 14px; display: inline-block; padding: 3px 0; }
+nav.toc a:hover { text-decoration: underline; }
+nav.toc strong { color: var(--text-2); margin-right: 10px; }
+
+/* Dashboard */
+.dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px; margin: 18px 0 28px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 18px; }
+.card .label { font-size: 12px; color: var(--text-3); text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 8px; }
+.card .value { font-size: 26px; font-weight: 700; }
+.card .sub { font-size: 12.5px; color: var(--text-2); margin-top: 4px; }
+
+.badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.badge-green { background: var(--green-bg); color: #6EE7B7; border: 1px solid var(--green); }
+.badge-red { background: var(--red-bg); color: #FCA5A5; border: 1px solid var(--red); }
+.badge-amber { background: var(--amber-bg); color: #FCD34D; border: 1px solid var(--amber); }
+.badge-blue { background: var(--blue-bg); color: #93C5FD; border: 1px solid var(--blue); }
+
+/* Target bars */
+.targets { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 18px; margin-bottom: 20px; }
+.targets h3 { margin: 0 0 12px; font-size: 14px; color: var(--text-2); text-transform: uppercase;
+  letter-spacing: 0.05em; font-weight: 600; }
+.target-row { display: grid; grid-template-columns: 70px 1fr 110px; gap: 10px; align-items: center;
+  padding: 12px 0 6px; }
+.target-row .lbl { font-size: 13px; color: var(--text-2); }
+.bar-track { background: var(--surface-2); height: 22px; border-radius: 4px; position: relative; overflow: hidden; }
+.bar { position: absolute; left: 0; top: 0; height: 22px; border-radius: 4px; opacity: 0.85; }
+.bar-bull { background: linear-gradient(90deg, var(--green) 0%, #34D399 100%); }
+.bar-base { background: linear-gradient(90deg, var(--blue) 0%, #60A5FA 100%); }
+.bar-bear { background: linear-gradient(90deg, var(--red) 0%, #F87171 100%); }
+.bar-current { position: absolute; height: 22px; top: 0; width: 2px; background: var(--amber); z-index: 3; }
+.target-px { font-weight: 700; text-align: right; font-size: 13.5px; }
+.scale-axis { display: grid; grid-template-columns: 70px 1fr 110px; gap: 10px; margin-top: 8px; font-size: 11px; color: var(--text-3); }
+.scale-axis .ticks { display: flex; justify-content: space-between; }
+
+/* Chart */
+.chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 18px; margin-bottom: 22px; }
+.chart-wrap h2 { margin: 0 0 12px; font-size: 16px; color: var(--text-2); font-weight: 600; }
+#priceChart { max-height: 360px; }
+
+/* Sections */
+section { margin-bottom: 30px; padding: 22px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px; }
+section h2 { margin: 0 0 8px; font-size: 22px; font-weight: 700; color: var(--text);
+  border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+section h2 .num { color: var(--blue); margin-right: 8px; }
+section h3 { font-size: 16px; margin: 22px 0 8px; color: var(--text); font-weight: 700; }
+section h4 { font-size: 14px; margin: 16px 0 6px; color: var(--text-2); text-transform: uppercase;
+  letter-spacing: 0.04em; font-weight: 700; }
+section p { margin: 8px 0; color: var(--text); }
+section li { margin: 4px 0; }
+
+/* Tags */
+.tag { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 10.5px;
+  font-weight: 700; letter-spacing: 0.04em; margin: 0 3px; vertical-align: 2px; }
+.tag-verified { background: var(--green-bg); color: #6EE7B7; }
+.tag-inferred { background: var(--amber-bg); color: #FCD34D; }
+.tag-uncertain { background: var(--red-bg); color: #FCA5A5; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+th { background: var(--surface-2); color: var(--text-2); text-align: left; padding: 10px 12px;
+  font-weight: 700; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border); }
+td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+tr:hover td { background: var(--surface-2); }
+td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.row-now { background: rgba(59, 130, 246, 0.08); }
+.row-now td { font-weight: 700; }
+
+/* Wrapper per tabelle larghe (mobile-friendly) */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 12px 0;
+  border-radius: 8px;
+}
+.table-scroll table { margin: 0; }
+/* Per tabelle con molte colonne (≥7), forziamo min-width per evitare wrapping illeggibile */
+.table-scroll table.wide { min-width: 720px; }
+.table-scroll::-webkit-scrollbar { height: 8px; }
+.table-scroll::-webkit-scrollbar-track { background: var(--surface-2); border-radius: 4px; }
+.table-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.table-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* Hint visivo scroll su mobile */
+@media (max-width: 720px) {
+  .table-scroll { position: relative; }
+}
+
+/* Bull/Bear */
+.bull-bear-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+.bull, .bear { padding: 16px; border-radius: 8px; }
+.bull { background: rgba(16, 185, 129, 0.07); border: 1px solid var(--green); }
+.bear { background: rgba(239, 68, 68, 0.07); border: 1px solid var(--red); }
+.bull h4 { color: var(--green); margin-top: 0; }
+.bear h4 { color: var(--red); margin-top: 0; }
+.bull ul, .bear ul { padding-left: 20px; margin: 6px 0; }
+
+/* Verdict boxes */
+.verdict-box { background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface) 100%);
+  border: 2px solid var(--blue); border-radius: 10px; padding: 18px; margin: 14px 0; }
+.verdict-box h4 { color: var(--blue); margin-top: 0; }
+
+/* Red flags box */
+.red-flags { background: rgba(239, 68, 68, 0.10); border: 2px solid var(--red);
+  border-radius: 10px; padding: 18px; margin: 20px 0; }
+.red-flags h3 { color: var(--red); margin: 0 0 10px; font-size: 17px; }
+.red-flags ol { padding-left: 22px; }
+.red-flags li { margin: 6px 0; }
+
+/* Disclaimer (6.7) */
+.disclaimer-yellow { background: var(--amber-bg); border: 1.5px solid var(--amber);
+  border-radius: 8px; padding: 14px 18px; margin: 12px 0; font-size: 13.5px; color: #FCD34D; }
+.disclaimer-yellow strong { color: #FBBF24; }
+
+/* Final verdict */
+.final-verdict { background: linear-gradient(135deg, var(--blue-bg) 0%, var(--surface) 100%);
+  border: 2px solid var(--blue); border-radius: 12px; padding: 24px; margin-top: 28px; }
+.final-verdict h2 { border: none; color: var(--blue); margin-bottom: 14px; }
+.fv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px; margin: 14px 0; }
+.fv-item { background: var(--surface-2); padding: 12px 14px; border-radius: 8px;
+  border: 1px solid var(--border); }
+.fv-item .lbl { font-size: 11.5px; color: var(--text-3); text-transform: uppercase;
+  letter-spacing: 0.05em; margin-bottom: 6px; }
+.fv-item .val { font-size: 17px; font-weight: 700; }
+
+/* Footer */
+footer { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-3); line-height: 1.6; }
+footer a { color: var(--blue); }
+
+/* Print */
+@media print {
+  body { background: white; color: black; }
+  nav.toc, .no-print { display: none; }
+  section { page-break-inside: avoid; break-inside: avoid;
+    background: white; border: 1px solid #ccc; color: black; }
+  .card, .verdict-box, .targets, .chart-wrap, .final-verdict, .red-flags { background: white; color: black; }
+}
+@media (max-width: 720px) {
+  .bull-bear-grid { grid-template-columns: 1fr; }
+  .container { padding: 14px; }
+  .ticker { font-size: 30px; }
+  section { padding: 16px 12px; }
+  table { font-size: 12px; }
+  th, td { padding: 7px 8px; }
+  .target-row { grid-template-columns: 55px 1fr 90px; gap: 6px; }
+  .scale-axis { grid-template-columns: 55px 1fr 90px; gap: 6px; font-size: 9.5px; }
+  .price-row { gap: 10px; font-size: 12px; }
+  .dashboard { grid-template-columns: 1fr; }
+}
+
+/* Target bar: single track, 3 markers, current price line */
+.target-bar-container { position: relative; padding-top: 50px; margin: 6px 8px 4px; }
+.tb-marker { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.tb-marker.tb-left { transform: translateX(-60%); }
+.tb-marker.tb-right { transform: translateX(-80%); }
+.tb-row1 { top: 0; }
+.tb-row2 { top: 22px; }
+.tb-lbl { font-size: 11.5px; font-weight: 700; }
+.tb-track { position: relative; height: 16px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.tb-dotpos { position: absolute; top: 1px; width: 12px; height: 12px; border-radius: 50%; transform: translateX(-50%); z-index: 2; }
+.tb-bear { background: var(--red); }
+.tb-base { background: var(--blue); }
+.tb-bull { background: var(--green); }
+.tb-current { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--amber); z-index: 3; }
+.tb-axis { position: relative; height: 18px; margin-top: 6px; font-size: 11px; color: var(--text-3); }
+.tb-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.tb-axis span:first-child { transform: translateX(0); }
+.tb-axis span:last-child { transform: translateX(-100%); }
+@media (max-width: 720px) {
+  .tb-axis .tb-minor { display: none; }
+  .tb-lbl { font-size: 10.5px; }
+}
+
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- HEADER -->
+<header>
+  <div class="ticker-row">
+    <span class="ticker">NFLX</span>
+    <span class="company">Netflix, Inc. — NASDAQ</span>
+    <span class="report-date">Data report: 2026-09-17</span>
+  </div>
+  <div class="price-row">
+    <span class="item">Prezzo: <b>$75.41</b></span>
+    <span class="item chg-neg">1g: −1.30%</span>
+    <span class="item chg-neg">YTD: −19.88%</span>
+    <span class="item chg-neg">1A: −38.24%</span>
+    <span class="item">Capitalizzazione: <b>$314.0B</b></span>
+    <span class="item">52 sett.: <b>$65.08 — $124.86</b></span>
+    <span class="item">Massimo storico: <b>$134.12</b> (giu 2025, rettificato per split)</span>
+    <span class="item">Nota: frazionamento 10:1 in vigore dal 2025-11-17</span>
+  </div>
+</header>
+
+<!-- TOC -->
+<nav class="toc">
+  <strong>Indice:</strong>
+  <a href="#dashboard">Dashboard</a>
+  <a href="#chart">Grafico</a>
+  <a href="#parte-1">1 · Business</a>
+  <a href="#parte-2">2 · Q2 2026</a>
+  <a href="#parte-3">3 · Bull vs Bear</a>
+  <a href="#parte-4">4 · Forense</a>
+  <a href="#parte-5">5 · Valutazione</a>
+  <a href="#parte-6">6 · SEC + Persone</a>
+  <a href="#parte-7">7 · Tecnica + Piano</a>
+  <a href="#verdict">Verdetto</a>
+</nav>
+
+<!-- DASHBOARD -->
+<section id="dashboard" style="border:none; padding:0; background:transparent; margin-bottom:8px;">
+<div class="dashboard">
+  <div class="card">
+    <div class="label">Trend SMA200 giornaliera</div>
+    <div class="value"><span class="badge badge-red">BELOW −12.0%</span></div>
+    <div class="sub">Prezzo $75.41 vs SMA200 $85.67 → distanza <b>−12.0%</b></div>
+  </div>
+  <div class="card">
+    <div class="label">Rating</div>
+    <div class="value"><span class="badge badge-amber">HOLD / SPECULATIVE BUY</span></div>
+    <div class="sub">Multiplo compresso, ma crescita in rallentamento e trend tecnico ancora ostile</div>
+  </div>
+  <div class="card">
+    <div class="label">Convinzione</div>
+    <div class="value"><span class="badge badge-amber">MEDIUM</span></div>
+    <div class="sub">Ackman compra, insider vendono, DCF neutro, verifica il 20 ottobre</div>
+  </div>
+  <div class="card">
+    <div class="label">Distanza dal massimo storico</div>
+    <div class="value chg-neg">−43.8%</div>
+    <div class="sub">Da $134.12 (30 giu 2025, rettificato per split) a $75.41</div>
+  </div>
+</div>
+
+<div class="targets">
+  <h3>Target di prezzo 18-24 mesi (scenari a valore atteso) — scala $0–$150</h3>
+  <div class="target-bar-container">
+    <div class="tb-marker tb-row1 tb-left" style="left:40%;"><span class="tb-dot tb-bear"></span><span class="tb-lbl chg-neg">BEAR $60 (−20%)</span></div>
+    <div class="tb-marker tb-row2" style="left:63.33%;"><span class="tb-dot tb-base"></span><span class="tb-lbl" style="color:#93C5FD;">BASE $95 (+26%)</span></div>
+    <div class="tb-marker tb-row1 tb-right" style="left:87.33%;"><span class="tb-dot tb-bull"></span><span class="tb-lbl chg-pos">BULL $131 (+74%)</span></div>
+    <div class="tb-track">
+      <div class="tb-dotpos tb-bear" style="left:40%;"></div>
+      <div class="tb-dotpos tb-base" style="left:63.33%;"></div>
+      <div class="tb-dotpos tb-bull" style="left:87.33%;"></div>
+      <div class="tb-current" style="left:50.27%;"></div>
+    </div>
+    <div class="tb-axis">
+      <span style="left:0%;">$0</span>
+      <span class="tb-minor" style="left:25%;">$37.50</span>
+      <span style="left:50.27%;color:var(--amber);font-weight:700;">$75.41 (attuale)</span>
+      <span class="tb-minor" style="left:75%;">$112.50</span>
+      <span style="left:100%;">$150</span>
+    </div>
+  </div>
+  <p style="font-size:12px;color:var(--text-3);margin-top:10px;">Valore atteso ponderato: $92 = (Bear 30% × $60) + (Base 50% × $95) + (Bull 20% × $131). Rialzo teorico atteso <b>+22%</b> da $75.41. La barra è lineare su scala $0–$150; i tre marcatori indicano gli scenari e la linea verticale ambra indica il prezzo attuale. <span class="tag tag-inferred">INFERRED</span></p>
+</div>
+</section>
+
+<!-- CHART -->
+<div id="chart" class="chart-wrap">
+  <h2>Grafico prezzo — 24 mesi, candele giornaliere con SMA50 / SMA200</h2>
+  <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--text-2); margin-bottom:10px;">
+    <span><span style="display:inline-block;width:18px;height:2px;background:#F59E0B;vertical-align:middle;margin-right:4px;"></span>SMA50</span>
+    <span><span style="display:inline-block;width:18px;height:2px;background:#3B82F6;vertical-align:middle;margin-right:4px;"></span>SMA200</span>
+  </div>
+  <canvas id="priceChart" style="max-height:380px;"></canvas>
+  <canvas id="volumeChart" style="max-height:110px; margin-top:6px;"></canvas>
+  <p style="font-size:11.5px;color:var(--text-3);margin-top:10px;">Fonte dati: Yahoo Finance API, candele giornaliere OHLCV (502 candele, dal 2024-09-17 al 2026-09-17; l'ultima è la seduta in corso al momento del download), scaricate il 2026-09-17, già rettificate per il frazionamento 10:1 del novembre 2025. Verifica incrociata con TradingView — SMA200 Yahoo $85.67 vs TradingView $85.67 (coincide, scarto 0.0%), SMA50 $75.79 vs $75.79 (coincide), minimo 52 settimane $65.08 vs $65.08, massimo storico $134.12 vs $134.12. Linee verticali: risultati Q3 2025 (tassa Brasile), frazionamento 10:1, accordo Warner Bros., vendita Trump da $1-5M, uscita dall'asta Warner Bros., risultati Q1 2026 e uscita di Hastings, risultati Q2 2026, ingresso di Ackman. <span class="tag tag-verified">VERIFIED — Yahoo Finance + TradingView</span></p>
+
+  <h3 style="margin-top:24px; margin-bottom:10px; font-size:15px; color:var(--text-2); font-weight:600; border-top:1px solid var(--border); padding-top:18px;">Zoom: ultimi 6 mesi, candele giornaliere</h3>
+  <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--text-2); margin-bottom:10px;">
+    <span><span style="display:inline-block;width:18px;height:2px;background:#F59E0B;vertical-align:middle;margin-right:4px;"></span>SMA50</span>
+    <span><span style="display:inline-block;width:18px;height:2px;background:#3B82F6;vertical-align:middle;margin-right:4px;"></span>SMA200</span>
+  </div>
+  <canvas id="priceChart6M" style="max-height:380px;"></canvas>
+  <canvas id="volumeChart6M" style="max-height:110px; margin-top:6px;"></canvas>
+  <p style="font-size:11.5px;color:var(--text-3);margin-top:10px;">Zoom sugli ultimi 6 mesi (126 candele giornaliere, 2026-03-19 → 2026-09-17). Si leggono due gradini di discesa su volumi elevati (17 aprile e 17 luglio, entrambi dopo i risultati trimestrali), un minimo a $65.08 il 17 luglio e un rimbalzo fino a $83.60 il 3 settembre, fermato sotto la SMA200 che nel frattempo continua a scendere. Il prezzo è tornato sulla SMA50 (che ha smesso di scendere): è una fase di base in costruzione, non ancora un'inversione di trend. Stessa fonte dati e stesse linee evento del grafico sopra.</p>
+</div>
+
+<!-- PART 1 -->
+<section id="parte-1">
+<h2><span class="num">1.</span>Report Introduttivo Istituzionale</h2>
+
+<h3>1.1 — Modello di business</h3>
+<p>Netflix vende abbonamenti a un servizio di intrattenimento in streaming (serie, film, giochi e, da due anni, eventi in diretta) in oltre 190 paesi. Nel 2025 i ricavi sono stati <b>$45.18 miliardi</b> (+16% sul 2024). <span class="tag tag-verified">VERIFIED — 10-K FY2025</span></p>
+<p>Quasi tutto il fatturato arriva dalle quote mensili; pubblicità, prodotti di consumo ed esperienze dal vivo sono dichiarati «non materiali» nel 10-K. La pubblicità è però il motore in accelerazione: per il 2026 la società prevede circa <b>$3 miliardi</b> di ricavi pubblicitari, all'incirca il doppio del 2025, cioè circa il 6% dei ricavi. <span class="tag tag-verified">VERIFIED — 10-K FY2025, lettera agli azionisti Q2 2026</span></p>
+<p>Ripartizione geografica 2025: Stati Uniti e Canada $19.96B (44%), Europa-Medio Oriente-Africa $14.51B (32%), America Latina $5.36B (12%), Asia-Pacifico $5.35B (12%). Il 56% dei ricavi è in valute diverse dal dollaro, quindi i cambi pesano sui numeri riportati. <span class="tag tag-verified">VERIFIED — 10-K FY2025</span></p>
+<p>Dal 2025 la società <b>non comunica più il numero di abbonati</b>: ha scelto di concentrare la comunicazione su ricavi e margine operativo. Il co-CEO Ted Sarandos ha citato una base di «oltre 325 milioni» di abbonati in un'intervista di agosto 2026. <span class="tag tag-verified">VERIFIED — 10-K FY2025; Economic Times 2026-08-05</span></p>
+
+<h3>1.2 — Motori dei ricavi</h3>
+<p>La crescita viene da tre leve: nuovi abbonati (soprattutto fuori dagli USA), aumenti di prezzo e pubblicità. Nel Q2 2026 i ricavi sono cresciuti del 13% (+12% a cambi costanti) a $12.56B, con crescita a doppia cifra in tutte le regioni. Negli USA e in Canada la crescita è scesa al 10%, con un aumento di prezzo entrato in vigore solo a fine marzo. <span class="tag tag-verified">VERIFIED — 8-K 2026-07-16</span></p>
+<p>Il punto debole è la <b>traiettoria</b>: crescita dei ricavi 17.6% nel Q4 2025, 16.2% nel Q1 2026, 13.4% nel Q2, 11.7% prevista nel Q3. È il ritmo più basso dalla fine del 2023. <span class="tag tag-verified">VERIFIED — lettera Q2 2026</span></p>
+<p>L'engagement (ore di visione) nel primo semestre 2026 è stato di oltre 97 miliardi di ore, +2% sull'anno precedente: la crescita dei ricavi dipende sempre più dal prezzo e dalla pubblicità, sempre meno dal tempo passato sulla piattaforma. <span class="tag tag-verified">VERIFIED — Invezz/Reuters 2026-07-17</span> <span class="tag tag-inferred">INFERRED — lettura del dato</span></p>
+<p>Leve nuove nel 2026: video verticali brevi su mobile (lancio 3 agosto), podcast video, eventi dal vivo (NFL in Australia, baseball in Giappone), partnership di distribuzione come quella con TF1 in Francia. <span class="tag tag-verified">VERIFIED — ScreenMDM 2026-07-17, AOL 2026-07-17</span></p>
+
+<h3>1.3 — Struttura dei costi</h3>
+<p>Il costo principale è l'<b>ammortamento dei contenuti</b>: $16.42B nel 2025, pari al 36% dei ricavi. Per legge contabile il costo di una serie viene spalmato sugli anni in cui genera visione: in media oltre il 90% di ogni contenuto è ammortizzato entro quattro anni dal debutto. <span class="tag tag-verified">VERIFIED — 10-K FY2025</span></p>
+<p>Costo del venduto 52% dei ricavi nel 2025 (54% nel 2024, 58% nel 2023): la leva operativa funziona perché i ricavi crescono più in fretta della spesa in contenuti. Marketing 7.3% dei ricavi, tecnologia 7.5%, spese generali 4.2%. Margine operativo 2025 al 29.5%, previsto al 31.5% nel 2026. <span class="tag tag-verified">VERIFIED — 10-K FY2025, lettera Q2 2026</span></p>
+<p>Gli investimenti in immobilizzazioni sono minimi: $688M nel 2025, circa l'1.5% dei ricavi. La vera spesa in conto capitale di Netflix sono i contenuti, che passano dal flusso di cassa operativo: $17.10B di pagamenti contro $16.42B di ammortamento nel 2025 (rapporto 1.04x), saliti a 1.15x nel primo semestre 2026. <span class="tag tag-verified">VERIFIED — 10-K FY2025, 10-Q Q2 2026</span></p>
+
+<h3>1.4 — Vantaggi competitivi (moat)</h3>
+<ul>
+<li><b>Scala sui contenuti</b>: con oltre 325 milioni di abbonati il costo di una serie si divide su una base quasi doppia rispetto a Disney+ e HBO Max insieme, secondo Pershing Square. Nessun concorrente di streaming puro può spendere tanto per abbonato senza perdere soldi. <span class="tag tag-verified">VERIFIED — CNBC 2026-08-13 (lettera Pershing Square)</span></li>
+<li><b>Dati e raccomandazioni</b>: la personalizzazione è indicata dal co-CEO Sarandos come il principale elemento distintivo dall'epoca dei DVD. <span class="tag tag-verified">VERIFIED — Indian Express 2026-08-07</span></li>
+<li><b>Prezzo</b>: la società ha alzato i prezzi negli USA a marzo 2026 e nel Regno Unito due volte nel 2026 (piano con pubblicità da £5.25 a £6.99). Riuscire a farlo senza perdere ricavi è la prova più concreta del vantaggio competitivo. <span class="tag tag-verified">VERIFIED — Markets Daily/AInvest 2026-09-04</span> <span class="tag tag-inferred">INFERRED — dimensione dell'aumento dall'articolo</span></li>
+<li><b>Il moat si sta erodendo sul tempo di visione</b>: YouTube e TikTok assorbono quote di attenzione crescenti, e la stessa Netflix definì YouTube un concorrente «formidabile» (Stratechery, gennaio 2026). La difesa passa da video brevi e podcast, dove Netflix non ha vantaggi dimostrati. <span class="tag tag-verified">VERIFIED — Stratechery 2026-01-22</span> <span class="tag tag-inferred">INFERRED</span></li>
+</ul>
+
+<h3>1.5 — Rischi principali</h3>
+<ul>
+<li><b>Rallentamento strutturale</b>: la crescita attesa per il Q3 (11.7%) è la più bassa dalla fine del 2023 e il consenso 2027 prevede ricavi +11.3%. Il mercato sta smettendo di prezzare Netflix come titolo di crescita. <span class="tag tag-verified">VERIFIED — lettera Q2 2026, Yahoo Finance stime</span></li>
+<li><b>Concorrenza per l'attenzione</b>: piattaforme gratuite con contenuti generati dagli utenti (YouTube, TikTok) crescono nel tempo speso sul televisore. <span class="tag tag-verified">VERIFIED — TheWrap 2026-07-17 (Third Bridge)</span></li>
+<li><b>Consolidamento dei concorrenti</b>: se Paramount Skydance completa l'acquisizione di Warner Bros. Discovery ($110-111 miliardi) nasce un concorrente con due grandi studi, HBO e un catalogo storico enorme. Restano solo le cause di 12 stati guidati dalla California; mediazione fissata a ottobre, processo a marzo 2027. <span class="tag tag-verified">VERIFIED — Reuters/MarketScreener 2026-09-15, LA Times 2026-09-16</span></li>
+<li><b>Rischio fiscale nei paesi esteri</b>: nel Q3 2025 la società ha contabilizzato $619M di tasse indirette in Brasile e prevede depositi per circa $700M. Altri paesi possono seguire la stessa strada. <span class="tag tag-verified">VERIFIED — 10-K FY2025</span></li>
+<li><b>Rischio politico</b>: nel febbraio 2026 il presidente Trump ha chiesto pubblicamente la rimozione del consigliere Susan Rice minacciando «conseguenze». <span class="tag tag-verified">VERIFIED — Yahoo Finance 2026-05-20</span></li>
+<li><b>Tassi</b>: il rendimento del Treasury a 10 anni è intorno al 5.0% e la Fed ha appena alzato i tassi al 4.00%. Un titolo valutato sugli utili dei prossimi anni soffre di più: il 4 settembre Netflix ha perso il 5.3% in una seduta legata ai rendimenti. <span class="tag tag-verified">VERIFIED — Investing.com 2026-09-17, 24/7 Wall St 2026-09-04</span></li>
+</ul>
+
+<h3>1.6 — Qualità del management</h3>
+<p>Due amministratori delegati: <b>Ted Sarandos</b> (co-CEO e consigliere dal 2020, in precedenza direttore dei contenuti) e <b>Greg Peters</b> (in Netflix dal 2008, co-CEO e consigliere dal 2023). CFO <b>Spencer Neumann</b>. Il fondatore Reed Hastings ha lasciato il consiglio all'assemblea del 4 giugno 2026; presidente è ora Jay Hoag, consigliere indipendente dal 1999. <span class="tag tag-verified">VERIFIED — DEF 14A 2026, 8-K 2026-04-16 e 2026-06-05</span></p>
+<p><b>Allocazione del capitale</b>: il punto di forza più recente è la disciplina sull'asta per Warner Bros. Netflix aveva un accordo da $82.7 miliardi, ha rifiutato di rilanciare contro Paramount («a quel prezzo l'operazione non è più attraente») e ha incassato una penale di $2.8 miliardi. Il titolo ha guadagnato il 13.8% il giorno dopo. <span class="tag tag-verified">VERIFIED — IR Netflix 2026-02-26, 8-K 2026-02-27, Yahoo Finance prezzi</span></p>
+<p><b>Riacquisto azioni</b>: $9.13B nel 2025, $5.98B nel primo semestre 2026 ($4.71B solo nel Q2), nuova autorizzazione da $25B ad aprile 2026, $27.1B ancora disponibili. Le azioni diluite sono scese del 2.0% in un anno. <span class="tag tag-verified">VERIFIED — 10-K FY2025, 10-Q Q2 2026, 8-K 2026-04-22</span></p>
+<p><b>Credibilità sulle previsioni</b>: negli ultimi due trimestri la guida sul trimestre successivo è stata sotto le attese degli analisti (Q2 guida $12.57B contro $12.64B attesi; Q3 guida $12.86B contro $13.0B), con cali del titolo del 9.7% e del 7.3%. I risultati consuntivi sono invece in linea o poco sopra la propria guida. <span class="tag tag-verified">VERIFIED — Yahoo Finance 2026-04-17, AOL 2026-07-17</span></p>
+<p><b>Allineamento</b>: dirigenti e consiglieri possiedono l'1.24% delle azioni. Negli ultimi 12 mesi <b>nessun acquisto sul mercato</b> da parte degli insider, vendite per circa $455M (in gran parte Hastings, tramite piani programmati). Dettaglio in 6.4. <span class="tag tag-verified">VERIFIED — DEF 14A 2026, Form 4 SEC</span></p>
+
+<h3>1.7 — Posizione nel settore</h3>
+<p>Netflix è il leader globale dello streaming a pagamento per abbonati e per redditività: margine operativo degli ultimi 12 mesi al 30.2% contro il 15.4% di Disney, il 7.0% di Warner Bros. Discovery e il 7.9% di Paramount Skydance. <span class="tag tag-verified">VERIFIED — TradingView 2026-09-17</span></p>
+<p>I concorrenti diretti sono Disney (Disney+, Hulu, ESPN), Warner Bros. Discovery (HBO Max, in vendita a Paramount), Amazon Prime Video, Apple TV (reduce da una notte degli Emmy da record), e sul tempo di visione YouTube. Il 14 settembre 2026 Netflix, Amazon e YouTube hanno creato una coalizione per difendere la loro posizione sui diritti sportivi a Washington. <span class="tag tag-verified">VERIFIED — Benzinga/Yahoo 2026-09-14/15</span></p>
+
+<h3>1.8 — Prospettive</h3>
+<p><b>Breve termine (4 trimestri)</b>: guida 2026 con ricavi $51.0-51.4B (+13-14%), margine operativo 31.5%, flusso di cassa libero circa $12.5B e pubblicità a circa $3B. Il Q3 atteso a $12.86B (+11.7%) con margine 33.2%. La guida 2027, attesa con i risultati di gennaio, sarà il vero spartiacque. <span class="tag tag-verified">VERIFIED — lettera Q2 2026</span></p>
+<p><b>3-5 anni</b>: il consenso vede ricavi $57.0B nel 2027 e $62.8B nel 2028, con utile netto 2028 a $18.4B. Se il margine continua a salire di un punto e mezzo l'anno e il riacquisto riduce le azioni del 2% annuo, l'utile per azione può crescere del 15-18% l'anno anche con ricavi al 10%. <span class="tag tag-uncertain">UNCERTAIN — stime MarketScreener, proiezione non verificabile</span></p>
+
+<div class="bull-bear-grid">
+<div class="bull">
+<h4>3 motivi rialzisti</h4>
+<ol>
+<li>Valutazione azzerata rispetto alla storia: 19.7 volte l'utile per azione atteso nel 2027, contro una mediana di circa 40 volte negli ultimi 5 anni per il rapporto prezzo/utili degli ultimi 12 mesi.</li>
+<li>Leader redditizio in un settore che si consolida: i concorrenti combattono con debito e integrazioni, Netflix ha rinunciato a Warner Bros. ed è stata pagata $2.8B per farlo.</li>
+<li>Riacquisto aggressivo ($27.1B autorizzati, circa l'8.6% della capitalizzazione) e un investitore attivista di peso, Pershing Square, entrato nel Q2 2026.</li>
+</ol>
+</div>
+<div class="bear">
+<h4>3 motivi ribassisti</h4>
+<ol>
+<li>La crescita scende trimestre dopo trimestre (16% → 13% → 12% previsto) e l'engagement cresce solo del 2%: il prezzo alto degli ultimi anni scontava una crescita che non c'è più.</li>
+<li>Meno trasparenza: niente numero di abbonati dal 2025 e report sull'engagement ridotto da semestrale ad annuale dal 2027.</li>
+<li>Trend tecnico negativo (prezzo 12% sotto la SMA200, che scende) e contesto di tassi in rialzo che penalizza i titoli valutati sugli utili futuri.</li>
+</ol>
+</div>
+</div>
+
+<div class="verdict-box">
+<h4>Conclusione bilanciata</h4>
+<p>Netflix non è un'azienda in crisi. Genera margini doppi rispetto ai concorrenti e compra le proprie azioni a ritmo sostenuto. Ha anche dimostrato disciplina rinunciando a un'acquisizione da $83 miliardi. Il problema è un altro: il mercato ha smesso di pagarla come titolo di crescita. I ricavi rallentano verso il 10-12%, l'engagement è quasi fermo e la società comunica meno dati. A $75.41 il titolo tratta a circa 20 volte gli utili 2027, un livello che sconta già una buona parte del rallentamento. Il flusso di cassa scontato (DCF, sezione 5.3), però, dice che il prezzo è ragionevole, non regalato. È un titolo da accumulare con pazienza e a rate, non da comprare in blocco: finché il trend tecnico resta negativo e la guida 2027 non chiarisce se la crescita si stabilizza sopra il 10%, il rischio di un'altra gamba di ribasso verso $65 resta concreto.</p>
+</div>
+</section>
+
+<!-- PART 2 -->
+<section id="parte-2">
+<h2><span class="num">2.</span>Analisi Q2 2026 (pubblicazione 2026-07-16)</h2>
+
+<h4>Cosa è migliorato</h4>
+<ul>
+<li>Ricavi $12.56B, +13.4%, in linea con la propria guida. Utile per azione diluito $0.80 contro $0.79 atteso dagli analisti. <span class="tag tag-verified">VERIFIED — 8-K 2026-07-16, AOL</span></li>
+<li>Utile operativo $4.19B (+11%), margine 33.4%, leggermente sopra la guida per tempistica delle spese.</li>
+<li>Crescita a doppia cifra in tutte le regioni; per la prima volta oltre $4.0B di ricavi trimestrali nell'area Europa-Medio Oriente-Africa.</li>
+<li>Guida 2026 confermata e ristretta a $51.0-51.4B, margine 31.5%, pubblicità circa $3B (quasi il doppio del 2025).</li>
+<li>Riacquisto record di $4.71B nel trimestre; azioni diluite 4.261 miliardi contro 4.349 un anno prima (−2.0%).</li>
+</ul>
+
+<h4>Cosa è peggiorato</h4>
+<ul>
+<li>Il flusso di cassa libero (FCF, la cassa che resta dopo contenuti e investimenti) è sceso a $1.53B da $2.27B (−33%), anche per le tasse pagate sulla penale Warner Bros. Il consenso si aspettava circa $2.9B. <span class="tag tag-verified">VERIFIED — 8-K 2026-07-16, Invezz 2026-07-17</span></li>
+<li>Guida Q3 sui ricavi a $12.86B contro $13.0B attesi e utile per azione $0.82 contro $0.84: crescita all'11.7%, il minimo dalla fine del 2023.</li>
+<li>USA e Canada al +10%, con l'effetto dell'aumento di prezzo presente solo in parte.</li>
+<li>Margine operativo sotto l'anno precedente (33.4% contro 34.1%) perché l'ammortamento dei contenuti cresce più in fretta nella prima metà dell'anno.</li>
+<li>Titolo −7.3% il giorno dopo, con minimo intraday a $65.08, il minimo delle ultime 52 settimane.</li>
+</ul>
+
+<h4>Su cosa punta il management</h4>
+<ul>
+<li>Pubblicità che raddoppia a circa $3B e aumenti di prezzo che si vedranno per intero nel secondo semestre.</li>
+<li>Eventi dal vivo: secondo Peters valgono il 5% del budget contenuti e solo l'1% delle ore viste, ma 6 dei 10 giorni con più nuovi abbonati degli ultimi 5 anni sono arrivati da eventi dal vivo. <span class="tag tag-verified">VERIFIED — ScreenMDM 2026-07-17</span></li>
+<li>Spesa in contenuti disciplinata: ammortamento +10% nel 2026, sotto la crescita dei ricavi.</li>
+<li>Formati nuovi (video brevi, podcast video) descritti da Sarandos come visione «incrementale», soprattutto di giorno e su mobile.</li>
+</ul>
+
+<h4>Cosa sta evitando il management</h4>
+<p>La domanda centrale del mercato è se il tempo speso su Netflix stia smettendo di crescere. Il management ha risposto che «non tutte le ore valgono uguale» (Peters) e, nella stessa lettera, ha annunciato che dal 2027 il report sull'engagement sarà <b>annuale invece che semestrale</b>. Dopo l'eliminazione del numero di abbonati nel 2025, è la seconda riduzione di trasparenza in due anni. Gli analisti l'hanno definita «non un bel segnale». La prima domanda della sessione con gli analisti (Steve Cahall, Wells Fargo) chiedeva proprio perché la crescita a cambi costanti scenda dal 12% all'11%. <span class="tag tag-verified">VERIFIED — TheWrap 2026-07-17, AOL, trascrizione CapEdge</span> <span class="tag tag-inferred">INFERRED — la lettura come elusione è un giudizio</span></p>
+
+<h4>Campanelli d'allarme nascosti</h4>
+<ul>
+<li><b>L'utile degli ultimi 12 mesi è gonfiato</b>: il Q1 2026 include la penale Warner Bros. da $2.8B tra i proventi finanziari. Al netto delle tasse vale circa $0.53 per azione. Il rapporto prezzo/utili dichiarato di 23.8 volte diventa circa 27 volte senza componenti straordinarie. <span class="tag tag-inferred">INFERRED — calcolo su aliquota Q1 2026 del 19.3%</span></li>
+<li><b>Il flusso di cassa 2026 contiene la penale</b>: la guida di circa $12.5B include la penale incassata; al netto delle tasse il dato ricorrente è vicino a $10.2B, solo +8% sui $9.46B del 2025, mentre l'utile operativo cresce oltre il 20%. <span class="tag tag-inferred">INFERRED</span></li>
+<li><b>La cassa per contenuti accelera</b>: pagamenti pari a 1.15 volte l'ammortamento nel primo semestre 2026 contro 1.04 nel 2025. La guida annuale è circa 1.1 volte. <span class="tag tag-verified">VERIFIED — 10-Q Q2 2026, lettera Q2</span></li>
+<li><b>Compensi in azioni in forte aumento</b>: $272M nel primo semestre 2026 contro $153M un anno prima (+78%). Restano piccoli, circa l'1.1% dei ricavi. <span class="tag tag-verified">VERIFIED — 10-Q Q2 2026</span></li>
+</ul>
+
+<h4>Numeri chiave Q3 2026 (pubblicazione prevista 2026-10-20)</h4>
+<div class="table-scroll">
+<table>
+<tr><th>Metrica</th><th>Guida / consenso</th><th>Livello da osservare</th></tr>
+<tr><td>Ricavi Q3</td><td class="num">$12.86B guida / $12.88B consenso</td><td>Sopra $12.95B = crescita che si stabilizza</td></tr>
+<tr><td>Crescita a cambi costanti</td><td class="num">~11%</td><td>Sotto il 10% = rallentamento conclamato</td></tr>
+<tr><td>Margine operativo Q3</td><td class="num">33.2%</td><td>Sotto il 32.5% = pressione sui costi</td></tr>
+<tr><td>Utile per azione diluito</td><td class="num">$0.82</td><td>Confronto con consenso $0.82</td></tr>
+<tr><td>Guida Q4 implicita</td><td class="num">~$13.5B ricavi, margine ~27.4%</td><td>Taglio della guida annuale $51.0-51.4B = segnale negativo forte</td></tr>
+<tr><td>Flusso di cassa libero annuo</td><td class="num">~$12.5B</td><td>Revisione al ribasso = cassa contenuti fuori controllo</td></tr>
+<tr><td>Riacquisto azioni Q3</td><td class="num">n.d.</td><td>Sotto $2B dopo i $4.7B del Q2 = minor convinzione</td></tr>
+</table>
+</div>
+<p style="font-size:12px;color:var(--text-3);">Guida Q4 implicita calcolata sottraendo i primi tre trimestri dalla guida annuale a metà forchetta. <span class="tag tag-inferred">INFERRED</span> Consenso da Yahoo Finance e TradingView. <span class="tag tag-verified">VERIFIED</span></p>
+</section>
+
+<!-- PART 3 -->
+<section id="parte-3">
+<h2><span class="num">3.</span>Bull vs Bear — a $75.41, oggi</h2>
+
+<div class="bull-bear-grid">
+<div class="bull">
+<h4>Tesi rialzista</h4>
+<ul>
+<li><b>Valutazione</b>: 19.7 volte l'utile per azione atteso 2027 ($3.82). La mediana a 5 anni del rapporto prezzo/utili degli ultimi 12 mesi è 40.4 volte (calcolata sui bilanci SEC). Il prezzo sulle vendite è 6.8 volte contro una mediana di 7.7.</li>
+<li><b>Utili che crescono più dei ricavi</b>: al netto della penale 2026 (circa $3.05 per azione), il consenso 2027 implica +25% di utile per azione, grazie a margine in espansione e meno azioni in circolazione.</li>
+<li><b>Riacquisto</b>: $27.1B autorizzati, circa l'8.6% della capitalizzazione, con il titolo ai minimi da due anni.</li>
+<li><b>Denaro istituzionale che entra</b>: Pershing Square (Bill Ackman) ha comprato 3.15 milioni di azioni nel Q2 2026 (4.9% del portafoglio) sostenendo che Netflix «ha vinto la guerra dello streaming».</li>
+<li><b>Disciplina dimostrata</b>: rinunciare a Warner Bros. ha evitato decine di miliardi di debito e ha portato $2.8B di penale.</li>
+<li><b>Posizioni corte basse</b>: 2.2% del flottante, nessun report pubblico di venditori allo scoperto.</li>
+</ul>
+</div>
+<div class="bear">
+<h4>Tesi ribassista</h4>
+<ul>
+<li><b>Crescita in discesa</b>: 17.6% → 16.2% → 13.4% → 11.7% previsto. Il consenso 2027 è +11.3%. Un titolo che cresce al 10% raramente mantiene un multiplo superiore a 20 volte gli utili.</li>
+<li><b>Engagement fermo</b>: +2% di ore viste nel primo semestre, mentre YouTube e i video brevi assorbono il tempo dei più giovani.</li>
+<li><b>Trasparenza in calo</b>: niente abbonati dal 2025, report engagement annuale dal 2027.</li>
+<li><b>Il DCF non dà margine di sicurezza</b>: con costo del capitale al 9.5% e crescita di lungo periodo al 3% il valore esce a $70, sotto il prezzo attuale (sezione 5.3).</li>
+<li><b>Insider solo venditori</b>: circa $455M di vendite in 12 mesi e nessun acquisto; Sarandos ha venduto $9.7M ad agosto a $73.</li>
+<li><b>Contesto tassi</b>: Treasury a 10 anni al 5.0% e Fed in rialzo; Netflix è stato il titolo del settore più colpito nella seduta del 4 settembre legata ai rendimenti.</li>
+</ul>
+</div>
+</div>
+
+<div class="verdict-box">
+<h4>Verdetto del dibattito — a $75.41, oggi</h4>
+<p><b>Sull'orizzonte 12-24 mesi prevale di poco la tesi rialzista</b>; <b>sull'orizzonte 1-3 mesi prevale la tesi ribassista</b>. La valutazione a circa 20 volte gli utili 2027 sconta già buona parte del rallentamento, e la combinazione di margini in espansione e riacquisto sostiene una crescita dell'utile per azione a doppia cifra. Ma la tesi rialzista vince solo se la crescita dei ricavi si stabilizza sopra il 10%: non esiste ancora un dato che lo dimostri, e il prossimo arriva il 20 ottobre. Chi entra oggi accetta la possibilità di rivedere $65 (minimo di luglio) in cambio di un valore atteso di circa +22% a 18-24 mesi. Il DCF ci ricorda che non è un'occasione a sconto profondo: il margine di sicurezza viene dal prezzo di ingresso, quindi da una costruzione a rate più in basso.</p>
+</div>
+</section>
+
+<!-- PART 4 -->
+<section id="parte-4">
+<h2><span class="num">4.</span>Contabilità Forense</h2>
+
+<h3>4.1 — Qualità dei ricavi</h3>
+<p>Ricavi di alta qualità: abbonamenti mensili pagati in anticipo, senza contratti pluriennali da stimare e senza crediti rilevanti (rotazione dei crediti 27 volte l'anno, cioè incasso in circa 13 giorni). La componente più ciclica è la pubblicità, circa il 6% dei ricavi nel 2026. Il rischio principale è il cambio: 57% dei ricavi del primo semestre 2026 in valute diverse dal dollaro. <span class="tag tag-verified">VERIFIED — 10-Q Q2 2026, TradingView</span></p>
+
+<h3>4.2 — Qualità degli utili</h3>
+<p>Due componenti straordinarie di segno opposto distorcono gli ultimi 12 mesi. La prima: <b>+$2.8B di penale Warner Bros.</b> contabilizzata nel Q1 2026 tra i proventi finanziari. La seconda: <b>−$619M di tasse indirette in Brasile</b> nel Q3 2025, dentro il costo del venduto, che hanno abbassato il margine di quel trimestre al 28.2%. Utile netto degli ultimi 12 mesi $13.65B; al netto delle due voci circa $12.0B. Aliquota fiscale effettiva 2025 al 14%, bassa grazie a crediti per ricerca e benefici fiscali sulle stock option. <span class="tag tag-verified">VERIFIED — 10-K FY2025, 10-Q Q1 e Q2 2026</span> <span class="tag tag-inferred">INFERRED — rettifica al netto delle tasse</span></p>
+
+<h3>4.3 — Flusso di cassa</h3>
+<div class="table-scroll">
+<table>
+<tr><th>Metrica</th><th>Anno 2025</th><th>Ultimi 12 mesi</th><th>Q2 2026</th></tr>
+<tr><td>Utile netto</td><td class="num">$10,981M</td><td class="num">$13,650M</td><td class="num">$3,401M</td></tr>
+<tr><td>Cassa dalla gestione operativa</td><td class="num">$10,149M</td><td class="num">$11,971M</td><td class="num">$1,744M</td></tr>
+<tr><td>Flusso di cassa libero</td><td class="num">$9,461M</td><td class="num">$11,152M</td><td class="num">$1,525M</td></tr>
+<tr><td>Pagamenti contenuti / ammortamento</td><td class="num">1.04x</td><td class="num">n.d.</td><td class="num">1.14x</td></tr>
+<tr><td>Riacquisto azioni</td><td class="num">$9,127M</td><td class="num">n.d.</td><td class="num">$4,714M</td></tr>
+</table>
+</div>
+<p>Rapporto tra cassa operativa e utile netto: 0.92 nel 2025 e 0.88 negli ultimi 12 mesi. Per un'azienda di contenuti è normale restare vicino a 1, perché la cassa per i contenuti supera l'ammortamento. Il margine di flusso di cassa libero degli ultimi 12 mesi è il 22.9% dei ricavi: ogni $100 di ricavi, circa $23 diventano cassa disponibile per riacquisti e debito. <span class="tag tag-verified">VERIFIED — 10-K, 10-Q, TradingView 2026-09-17</span></p>
+
+<h3>4.4 — Rischio debito</h3>
+<ul>
+<li>Debito lordo $14.4B, cassa $9.1B, debito netto circa $5.2B al 30 giugno 2026. <span class="tag tag-verified">VERIFIED — lettera Q2 2026</span></li>
+<li>Debito netto / EBITDA 0.23 volte (TradingView; l'EBITDA di Netflix include l'ammortamento dei contenuti tra le rettifiche e va letto con cautela). Copertura degli interessi con l'utile operativo: 17.4 volte. <span class="tag tag-verified">VERIFIED — TradingView</span></li>
+<li>Scadenze vicine: $1B al 4.375% a novembre 2026, rifinanziate con un'emissione da $1B al 5.25% a 10 anni del 22 luglio 2026; €1.3B al 3.625% a maggio 2027. Debito a breve $2.48B. <span class="tag tag-verified">VERIFIED — 10-K FY2025, 8-K 2026-07-22, 10-Q Q2</span></li>
+<li>Obblighi per contenuti: $25.1B al 30 giugno 2026 (a fine 2025 $24.0B, di cui $18.4B fuori bilancio). Sono impegni fissi che il 10-K indica esplicitamente come limite alla flessibilità. <span class="tag tag-verified">VERIFIED — 10-K FY2025, 10-Q Q2 2026</span></li>
+<li>Linea di credito rotativa da $3B e programma di carta commerciale da $3B, non utilizzati a fine 2025.</li>
+</ul>
+
+<h3>4.5 — Rischio diluizione</h3>
+<p>Nessun rischio di diluizione netta: azioni diluite medie da 4.349 miliardi (Q2 2025) a 4.261 miliardi (Q2 2026), −2.0%. Le stock option esercitate da dipendenti e dirigenti (Hastings in particolare) generano nuove azioni, ma il riacquisto ne ritira molte di più. <span class="tag tag-verified">VERIFIED — lettera Q2 2026</span></p>
+
+<h3>4.6 — Compensi in azioni</h3>
+<p>I compensi in azioni (stock-based compensation) sono bassi per un'azienda tecnologica: $368M nel 2025, pari allo 0.8% dei ricavi, contro il 10-20% tipico del software. Netflix storicamente paga di più in contanti. In aumento però nel 2026: $272M nel primo semestre (+78%). Netflix non esclude questi costi dai propri risultati: comunica utili secondo i principi contabili ufficiali (GAAP). <span class="tag tag-verified">VERIFIED — 10-K FY2025, 10-Q Q2 2026</span></p>
+
+<h3>4.7 — Rettifiche una tantum</h3>
+<p>Tre voci recenti: la penale Warner Bros. (+$2.8B, Q1 2026), le tasse brasiliane (−$619M, Q3 2025), i costi di finanziamento per l'operazione Warner Bros. (circa $60M di commissioni ammortizzate nel 2025). A queste si aggiunge l'acquisizione di InterPositive, società di strumenti di intelligenza artificiale per il cinema fondata da Ben Affleck, per circa $587M in contanti a marzo 2026. Nessuna di queste voci si ripete ogni trimestre: non c'è un'abitudine a «ripulire» gli utili. <span class="tag tag-verified">VERIFIED — 10-K FY2025, 10-Q Q1 2026, Deadline 2026-03-05</span></p>
+
+<h3>4.8 — Contabilità aggressiva</h3>
+<p>Nessun segnale rosso nei documenti letti: revisore Ernst &amp; Young con parere senza rilievi e controlli interni giudicati efficaci, nessuna rettifica di bilanci passati, nessuna comunicazione aperta con la SEC («Unresolved Staff Comments: None»). La stima più delicata è la durata dell'ammortamento dei contenuti. Oltre il 90% del costo è spesato entro 4 anni, ma una revisione di questa curva sposterebbe l'utile senza cambiare la cassa: resta il punto da monitorare. <span class="tag tag-verified">VERIFIED — 10-K FY2025 Item 1B, 9A, note contenuti</span></p>
+
+<h3>4.9 — Differenze tra dati GAAP e non-GAAP</h3>
+<p>Differenza minima: Netflix pubblica utile e margine secondo i principi contabili ufficiali. Le sole misure alternative sono il flusso di cassa libero e la crescita a cambi costanti. È una qualità rara: il confronto con i concorrenti va fatto sugli utili dichiarati, non su utili «rettificati». <span class="tag tag-verified">VERIFIED — 8-K 2026-07-16</span></p>
+
+<div class="red-flags">
+<h3>⚠️ Campanelli d'allarme che indagherei prima di acquistare</h3>
+<ol>
+<li><b>Flusso di cassa ricorrente che cresce poco</b>: circa $10.2B nel 2026 senza la penale, +8% sul 2025, contro utile operativo +20%. Se la cassa per contenuti resta sopra 1.1 volte l'ammortamento, la conversione degli utili in cassa peggiora.</li>
+<li><b>Utile per azione 2026 gonfiato</b>: il +42% atteso nel 2026 contiene la penale. Il vero confronto per il 2027 parte da circa $3.05, non da $3.58.</li>
+<li><b>Riduzione della trasparenza</b>: senza abbonati e con un solo report annuale sull'engagement, il mercato perde gli strumenti per verificare la domanda. Storicamente, meno dati tendono a portare multipli più bassi.</li>
+<li><b>Tasse indirette all'estero</b>: il caso Brasile ($619M più circa $700M di depositi) può ripetersi in altri paesi dove i ricavi crescono.</li>
+<li><b>Impegni per contenuti da $25.1B</b>: costo fisso rigido; in caso di calo dei ricavi non si taglia in fretta.</li>
+<li><b>Vendite degli insider senza acquisti</b>: circa $455M in 12 mesi. Quasi tutte sono piani programmati, ma nessun dirigente ha comprato nemmeno a $65-75.</li>
+</ol>
+</div>
+</section>
+
+<!-- PART 5 -->
+<section id="parte-5">
+<h2><span class="num">5.</span>Valutazione</h2>
+
+<h3>5.1 — Multipli rispetto ai concorrenti media e internet</h3>
+<div class="table-scroll">
+<table class="wide">
+<thead>
+<tr><th>Ticker</th><th class="num">Prezzo</th><th class="num">Capitaliz.</th><th class="num">P/E ult. 12M</th><th class="num">P/E atteso</th><th class="num">EV/Ricavi</th><th class="num">EV/EBITDA</th><th class="num">EV/FCF</th><th class="num">Cresc. ricavi 12M</th><th class="num">Margine oper.</th><th class="num">Margine FCF</th><th class="num">ROIC</th></tr>
+</thead>
+<tbody>
+<tr class="row-now"><td>NFLX</td><td class="num">$75.41</td><td class="num">$314.0B</td><td class="num">23.8</td><td class="num">21.0</td><td class="num">6.6</td><td class="num">9.9</td><td class="num">28.8</td><td class="num">17.6%</td><td class="num">30.2%</td><td class="num">22.9%</td><td class="num">32.0%</td></tr>
+<tr><td>DIS</td><td class="num">$106.09</td><td class="num">$183.2B</td><td class="num">21.9</td><td class="num">15.3</td><td class="num">2.3</td><td class="num">11.1</td><td class="num">27.8</td><td class="num">5.3%</td><td class="num">15.4%</td><td class="num">8.4%</td><td class="num">5.9%</td></tr>
+<tr><td>WBD</td><td class="num">$28.11</td><td class="num">$70.6B</td><td class="num">N/M</td><td class="num">N/M</td><td class="num">2.8</td><td class="num">13.2</td><td class="num">46.1</td><td class="num">-5.9%</td><td class="num">7.0%</td><td class="num">6.0%</td><td class="num">-4.7%</td></tr>
+<tr><td>PSKY</td><td class="num">$10.59</td><td class="num">$11.9B</td><td class="num">N/M</td><td class="num">20.7</td><td class="num">0.9</td><td class="num">7.6</td><td class="num">58.5</td><td class="num">1.2%</td><td class="num">7.9%</td><td class="num">1.6%</td><td class="num">-2.1%</td></tr>
+<tr><td>CMCSA</td><td class="num">$23.29</td><td class="num">$82.6B</td><td class="num">7.5</td><td class="num">6.7</td><td class="num">1.3</td><td class="num">4.8</td><td class="num">8.1</td><td class="num">0.6%</td><td class="num">14.9%</td><td class="num">16.4%</td><td class="num">6.1%</td></tr>
+<tr><td>FOXA</td><td class="num">$65.31</td><td class="num">$25.9B</td><td class="num">17.0</td><td class="num">11.0</td><td class="num">1.7</td><td class="num">7.5</td><td class="num">20.1</td><td class="num">5.1%</td><td class="num">20.4%</td><td class="num">8.6%</td><td class="num">8.7%</td></tr>
+<tr><td>SPOT</td><td class="num">$536.78</td><td class="num">$110.5B</td><td class="num">33.4</td><td class="num">38.3</td><td class="num">4.7</td><td class="num">31.2</td><td class="num">25.9</td><td class="num">16.9%</td><td class="num">14.6%</td><td class="num">18.3%</td><td class="num">42.4%</td></tr>
+<tr><td>ROKU</td><td class="num">$154.42</td><td class="num">$22.9B</td><td class="num">66.0</td><td class="num">55.3</td><td class="num">4.0</td><td class="num">34.7</td><td class="num">41.2</td><td class="num">18.5%</td><td class="num">5.2%</td><td class="num">9.7%</td><td class="num">11.3%</td></tr>
+<tr><td>GOOGL</td><td class="num">$345.40</td><td class="num">$4.20T</td><td class="num">17.4</td><td class="num">16.8</td><td class="num">9.2</td><td class="num">23.1</td><td class="num">76.9</td><td class="num">20.2%</td><td class="num">34.0%</td><td class="num">11.9%</td><td class="num">42.3%</td></tr>
+<tr><td>AMZN</td><td class="num">$251.59</td><td class="num">$2.71T</td><td class="num">20.2</td><td class="num">19.7</td><td class="num">3.7</td><td class="num">16.3</td><td class="num">N/M</td><td class="num">15.8%</td><td class="num">12.7%</td><td class="num">-1.5%</td><td class="num">21.8%</td></tr>
+<tr><td>META</td><td class="num">$672.70</td><td class="num">$1.71T</td><td class="num">25.3</td><td class="num">21.5</td><td class="num">7.6</td><td class="num">15.8</td><td class="num">42.3</td><td class="num">27.7%</td><td class="num">38.1%</td><td class="num">18.0%</td><td class="num">22.2%</td></tr>
+</tbody>
+</table>
+</div>
+<p style="font-size:12px;color:var(--text-3);">Tutti i dati <span class="tag tag-verified">VERIFIED — TradingView 2026-09-17</span>. Legenda: P/E = prezzo diviso utile per azione (quanti anni di utili si pagano); EV = valore d'impresa (capitalizzazione più debito netto); FCF = flusso di cassa libero; ROIC = rendimento sul capitale investito. «N/M» = non significativo o non disponibile. <b>Attenzione</b>: l'EV/EBITDA di Netflix (9.9x) è falsato perché l'EBITDA di TradingView aggiunge l'ammortamento dei contenuti, che per Netflix è il costo operativo principale; il confronto corretto è su P/E ed EV/FCF. Il P/E ultimi 12 mesi di Netflix (23.8x) include la penale Warner Bros.; senza componenti straordinarie è circa 27x. Netflix ha il margine operativo e il ROIC più alti tra i media tradizionali, ma tratta a un P/E simile a quello di Meta, che cresce più in fretta (+27.7%), e di Amazon.</p>
+
+<h3>5.2 — Multipli attuali rispetto alla mediana storica</h3>
+<div class="table-scroll">
+<table>
+<tr><th>Metrica</th><th>Attuale</th><th>Mediana 5 anni</th><th>Premio/Sconto</th></tr>
+<tr><td>P/E ultimi 12 mesi (dichiarato)</td><td class="num">23.8x</td><td class="num">40.4x</td><td class="num"><span class="chg-pos">−41%</span></td></tr>
+<tr><td>P/E ultimi 12 mesi (senza straordinari)</td><td class="num">~27x</td><td class="num">40.4x</td><td class="num"><span class="chg-pos">−33%</span></td></tr>
+<tr><td>Prezzo / ricavi ultimi 12 mesi</td><td class="num">6.8x</td><td class="num">7.7x</td><td class="num"><span class="chg-pos">−11%</span></td></tr>
+<tr><td>P/E atteso (utile 2026)</td><td class="num">21.0x</td><td class="num">n.d.</td><td class="num">n.d.</td></tr>
+<tr><td>EV / flusso di cassa libero</td><td class="num">28.8x</td><td class="num">n.d.</td><td class="num">n.d.</td></tr>
+</table>
+</div>
+<p>Mediane calcolate sui trimestri da settembre 2021 a giugno 2026: utile per azione diluito dai bilanci XBRL della SEC (rettificato per il frazionamento 10:1) e prezzi di chiusura Yahoo di fine trimestre. Il P/E ha oscillato tra 15.5x (giugno 2022, crollo post-perdita abbonati) e 57.1x (giugno 2025, massimo). Oggi il titolo è vicino alla parte bassa del range ma non al minimo del 2022. <span class="tag tag-verified">VERIFIED — calcolo su SEC XBRL + Yahoo Finance</span> Mediane per P/E atteso ed EV/FCF non calcolate. Pershing Square cita un P/E atteso sceso da oltre 40x a circa 21x. <span class="tag tag-uncertain">UNCERTAIN</span></p>
+
+<h3>5.3 — DCF semplificato (sensibilità)</h3>
+<div class="table-scroll">
+<table>
+<tr><th rowspan="2">Costo del capitale ↓</th><th colspan="3">Crescita di lungo periodo →</th></tr>
+<tr><th class="num">2.5%</th><th class="num">3.0%</th><th class="num">3.5%</th></tr>
+<tr><td>8.5%</td><td class="num">$79</td><td class="num">$84</td><td class="num">$90</td></tr>
+<tr><td>9.5%</td><td class="num">$66</td><td class="num">$70</td><td class="num">$73</td></tr>
+<tr><td>10.5%</td><td class="num">$57</td><td class="num">$59</td><td class="num">$62</td></tr>
+<tr><td>11.5%</td><td class="num">$50</td><td class="num">$51</td><td class="num">$53</td></tr>
+</table>
+</div>
+<p style="font-size:12px;color:var(--text-3);">Il DCF (flusso di cassa scontato) stima il valore di oggi della cassa futura. Ipotesi: flusso di cassa libero ricorrente 2026 di $10.2B (guida circa $12.5B meno la penale al netto delle tasse), crescita 14% annua negli anni 1-3, 11% negli anni 4-6, 8% negli anni 7-10; debito netto $5.2B; 4.164 miliardi di azioni. Costo del capitale di riferimento 9.5%: Treasury 10 anni al 5.0%, beta a 3 anni 0.88, premio al rischio azionario 4.5-5%. <span class="tag tag-inferred">INFERRED — modello semplificato</span></p>
+<p>Risultato di riferimento (costo del capitale 9.5%, crescita di lungo periodo 3%): <b>valore circa $70</b>, sotto il prezzo attuale. Se si parte dal flusso di cassa 2027 atteso dal consenso ($14.5B) invece che dalla nostra base prudente, il valore sale a circa <b>$87</b>. Il DCF non dà un margine di sicurezza evidente: a $75 il titolo è a valore equo, non a sconto profondo. Con i tassi al 5% ogni punto di costo del capitale sposta il valore di $11-14 per azione. <span class="tag tag-inferred">INFERRED</span></p>
+
+<h3>5.4 — DCF inverso</h3>
+<p>Il DCF inverso chiede: quale crescita del flusso di cassa sta già scontando il prezzo di oggi? A $75.41, con costo del capitale al 9.5% e crescita finale al 3%, il mercato sconta una crescita del flusso di cassa libero di circa il <b>12% annuo per 10 anni</b> (9.6% con costo del capitale all'8.5%, 14.3% al 10.5%). È in linea con la crescita media dei ricavi degli ultimi 5 anni (12.6% annuo, TradingView) e sopra la crescita dei ricavi attesa per il 2027 (11.3%). Il prezzo non sconta un crollo: sconta che Netflix continui a crescere come ha fatto finora. Serve che il margine continui a salire per giustificare un rialzo robusto. <span class="tag tag-inferred">INFERRED</span></p>
+
+<h3>5.5 — Target a tre scenari (18-24 mesi)</h3>
+<div class="table-scroll">
+<table>
+<tr><th>Scenario</th><th>Probabilità</th><th>Multiplo obiettivo</th><th>Prezzo obiettivo</th><th>Rialzo vs $75.41</th></tr>
+<tr><td>BEAR</td><td class="num">30%</td><td>P/E atteso 15x × utile per azione 2028 $4.00</td><td class="num">$60</td><td class="num chg-neg">−20%</td></tr>
+<tr><td>BASE</td><td class="num">50%</td><td>P/E atteso 21x × utile per azione 2028 $4.50</td><td class="num">$95</td><td class="num chg-pos">+26%</td></tr>
+<tr><td>BULL</td><td class="num">20%</td><td>P/E atteso 27x × utile per azione 2028 $4.85</td><td class="num">$131</td><td class="num chg-pos">+74%</td></tr>
+<tr><td colspan="3"><b>Valore atteso ponderato</b></td><td class="num"><b>$92</b></td><td class="num chg-pos"><b>+22%</b></td></tr>
+</table>
+</div>
+<p style="font-size:12px;color:var(--text-3);">Utile per azione 2028 di riferimento: consenso utile netto $18.4B (MarketScreener) su circa 4.05 miliardi di azioni = circa $4.55. BEAR: crescita dei ricavi sotto il 9%, margine fermo, multiplo da media tradizionale (Disney tratta a 15.3x). BASE: il multiplo attuale regge e gli utili crescono come da consenso; coincide con il target medio degli analisti ($94.54). BULL: pubblicità e prezzo riaccelerano la crescita sopra il 12% e il mercato riconosce un parziale ritorno verso la mediana storica (27x, ancora −33% dalla mediana di 40x). Probabilità inclinate verso il BEAR per il contesto di tassi in rialzo e crescita in discesa. <span class="tag tag-inferred">INFERRED</span></p>
+</section>
+
+<!-- PART 6 -->
+<section id="parte-6">
+<h2><span class="num">6.</span>SEC Intelligence + Monitoraggio Persone Influenti</h2>
+
+<h3>6.1 — Fattori di rischio materiali (10-K 2025)</h3>
+<ul>
+<li><b>Pubblicità</b>: la società dichiara di avere «esperienza limitata» nella vendita di pubblicità e che i ricavi potrebbero non crescere come previsto. È il motore di crescita principale del 2026. <span class="tag tag-verified">VERIFIED — 10-K FY2025 Risk Factor</span></li>
+<li><b>Impegni sui contenuti</b>: la natura fissa e di lungo periodo degli impegni «può limitare la flessibilità operativa» e incidere sulla liquidità ($24.0B a fine 2025). <span class="tag tag-verified">VERIFIED</span></li>
+<li><b>Debito e obblighi</b>: rischio esplicito di non generare cassa sufficiente a servire debito e obblighi per contenuti. <span class="tag tag-verified">VERIFIED</span></li>
+<li><b>Dipendenza da Amazon Web Services</b> per parti rilevanti del servizio. <span class="tag tag-verified">VERIFIED</span></li>
+<li><b>Rischi internazionali e fiscali</b>: tasse, valute, censura, controlli sui capitali. Il caso Brasile ne è la materializzazione. <span class="tag tag-verified">VERIFIED</span></li>
+<li><b>Nuovo nel 10-K 2025</b>: una sezione dedicata ai rischi dell'operazione Warner Bros., oggi superata dalla rinuncia. Il 10-Q del Q2 2026 dichiara nessuna modifica materiale ai fattori di rischio. <span class="tag tag-verified">VERIFIED — 10-K FY2025, 10-Q Q2 2026 Item 1A</span></li>
+<li><b>Statuto</b>: vieta agli azionisti di agire per consenso scritto. Una proposta per introdurlo ha raccolto il 44.6% dei voti nel 2026. <span class="tag tag-verified">VERIFIED — 10-K, 8-K 2026-06-05</span></li>
+</ul>
+
+<h3>6.2 — Eventi materiali (8-K ultimi 9 mesi)</h3>
+<div class="table-scroll">
+<table>
+<tr><th>Data</th><th>Tipo</th><th>Sintesi</th></tr>
+<tr><td>2026-01-20</td><td>Accordo materiale (1.01)</td><td>Accordo Warner Bros. modificato: $27.75 per azione tutto in contanti invece che misto contanti e azioni Netflix. Prestito ponte aumentato a $42.2B.</td></tr>
+<tr><td>2026-02-27</td><td>Fine accordo (1.02)</td><td>Warner Bros. dichiara superiore l'offerta Paramount; Netflix rinuncia a rilanciare e incassa la penale di $2.8B, pagata da Paramount.</td></tr>
+<tr><td>2026-04-16</td><td>Risultati Q1 + uscita consigliere (2.02, 5.02)</td><td>Reed Hastings non si ricandida; risultati Q1 con utile record per la penale; titolo −9.7% il giorno dopo.</td></tr>
+<tr><td>2026-04-22</td><td>Altri eventi (8.01)</td><td>Nuova autorizzazione al riacquisto di azioni per $25B, senza scadenza.</td></tr>
+<tr><td>2026-06-05</td><td>Voto assemblea (5.07, 8.01)</td><td>Consiglieri rieletti; compensi approvati all'83.7%; Jay Hoag nominato presidente indipendente.</td></tr>
+<tr><td>2026-07-16</td><td>Risultati Q2 (2.02)</td><td>Ricavi +13%, guida Q3 sotto le attese; titolo −7.3%.</td></tr>
+<tr><td>2026-07-22</td><td>Emissione obbligazionaria (8.01)</td><td>$1B di obbligazioni senior al 5.25% con scadenza 2036, per rimborsare le note al 4.375% di novembre 2026.</td></tr>
+<tr><td>2026-07-30</td><td>Uscita consigliere (5.02)</td><td>Anne Sweeney lascia il consiglio con effetto 26 luglio, «non per disaccordi» con la società.</td></tr>
+</table>
+</div>
+<p>Nessun 10-K/A, nessuna comunicazione di ritardo nel deposito (NT 10-K/10-Q), nessun cambio di revisore, nessuna rettifica di bilanci. <span class="tag tag-verified">VERIFIED — EDGAR elenco depositi 2025-09 → 2026-09</span></p>
+
+<h3>6.3 — Compensi e governance (DEF 14A 2026)</h3>
+<ul>
+<li>Compenso totale 2025: <b>Sarandos $53.9M</b> (2024: $61.9M), <b>Peters $53.2M</b> (2024: $60.3M), Neumann $20.8M, Hyman $15.4M. Stipendio base dei co-CEO $3M, azioni assegnate $41.4M ciascuno, bonus pagato al 117.6% dell'obiettivo. <span class="tag tag-verified">VERIFIED — DEF 14A 2026</span></li>
+<li>Voto consultivo sui compensi (Say-on-Pay): oltre l'85% nel 2025, <b>83.7%</b> nel 2026, in calo. <span class="tag tag-verified">VERIFIED — DEF 14A, 8-K 2026-06-05 (calcolo favorevoli/(favorevoli+contrari))</span></li>
+<li>Insider nel complesso: 52.4 milioni di azioni, <b>1.24%</b> del capitale ad aprile 2026. Di queste, 37.8 milioni erano di Hastings (incluse 16.6 milioni di opzioni), che ha poi lasciato il consiglio. <span class="tag tag-verified">VERIFIED — DEF 14A 2026</span></li>
+<li>Consiglio: 10 consiglieri indipendenti su 12 candidati (esclusi i due co-CEO); presidente indipendente Jay Hoag dal giugno 2026. <span class="tag tag-verified">VERIFIED</span></li>
+<li>Punto debole: il DEF 14A spiega che Hoag non aveva ottenuto la maggioranza dei voti all'assemblea precedente per presenze sotto il 75% alle riunioni del 2024. Il consiglio ha respinto le sue dimissioni. Nel 2026 è stato rieletto con il 93%. <span class="tag tag-verified">VERIFIED — DEF 14A 2026, 8-K 2026-06-05</span></li>
+<li>Revisore Ernst &amp; Young, ratificato con il 96.8% dei voti. <span class="tag tag-verified">VERIFIED</span></li>
+</ul>
+
+<h3>6.4 — Attività degli insider (Form 4, ultimi 12 mesi)</h3>
+<p>Il Form 4 è la comunicazione obbligatoria alla SEC che dirigenti e consiglieri devono fare entro 2 giorni lavorativi da ogni acquisto o vendita di azioni. Un piano 10b5-1 è un programma di vendita depositato in anticipo, pensato per evitare accuse di insider trading: le vendite dentro un piano dicono poco, quelle fuori piano dicono di più. Dati letti direttamente dai 192 Form 4 depositati dal 2025-09-17 al 2026-09-17; quantità rettificate per il frazionamento.</p>
+<div class="table-scroll">
+<table>
+<tr><th>Periodo</th><th>Insider</th><th>Ruolo</th><th>Tipo</th><th>Note</th></tr>
+<tr><td>ott 2025 → giu 2026</td><td>Reed Hastings</td><td>Presidente fino a giu 2026</td><td>VENDITA ~3.64M azioni, ~$358M</td><td>Tutte in piano 10b5-1, mensili, dopo esercizio di opzioni; prezzo medio da $115 (ott) a $86 (giu)</td></tr>
+<tr><td>nov 2025</td><td>David Hyman</td><td>Direttore affari legali</td><td>VENDITA 314,620 az., $34.6M a ~$110</td><td>Piano 10b5-1; poi vendite trimestrali minori ($0.4-2.1M)</td></tr>
+<tr><td>ott 2025 → apr 2026</td><td>Spencer Neumann</td><td>CFO</td><td>VENDITA ~$18.5M</td><td>In prevalenza 10b5-1, prezzi $93-117</td></tr>
+<tr><td>gen 2026</td><td>Greg Peters</td><td>Co-CEO</td><td>VENDITA 105,781 az., $8.8M a ~$83</td><td>Piano 10b5-1; totale 12 mesi $17.7M</td></tr>
+<tr><td><b>ago 2026</b></td><td><b>Ted Sarandos</b></td><td><b>Co-CEO</b></td><td><b>VENDITA 133,162 az., $9.7M a ~$73</b></td><td>Piano 10b5-1, vicino ai minimi annuali; totale 12 mesi $14.4M</td></tr>
+<tr><td>gen e giu 2026</td><td>Brad Smith</td><td>Consigliere</td><td>VENDITA $5.6M</td><td>Piano 10b5-1</td></tr>
+<tr><td>12 mesi</td><td>Tutti</td><td>—</td><td><b>ACQUISTI sul mercato: zero</b></td><td>Totale vendite ~$455M</td></tr>
+</table>
+</div>
+<p><b>Lettura</b>: circa l'80% del controvalore venduto è di Hastings, che stava uscendo dall'azienda e liquidava opzioni in scadenza: non è un segnale sul business. Le vendite trimestrali fuori piano da circa 27,000 azioni di Peters, Sarandos, Hyman e Neumann (feb, mag, ago) coincidono con i rilasci di azioni assegnate e sono compatibili con vendite per coprire le tasse. <span class="tag tag-inferred">INFERRED</span> Il dato che pesa è un altro: con il titolo sceso del 40-50%, <b>nessun dirigente ha comprato un'azione</b> con soldi propri, e il co-CEO Sarandos ha venduto $9.7M ad agosto a $73. La società compra (riacquisto), i dirigenti no. Segnale neutro-negativo. <span class="tag tag-verified">VERIFIED — Form 4 SEC</span></p>
+
+<h3>6.5 — Proprietà istituzionale (13F)</h3>
+<p>Istituzionali circa l'<b>81%</b> del capitale. <span class="tag tag-verified">VERIFIED — Barchart</span> Percentuali calcolate su 4,164 milioni di azioni in circolazione.</p>
+<div class="table-scroll">
+<table>
+<tr><th>#</th><th>Detentore</th><th>Tipo</th><th>Posizione al 30/06/2026</th></tr>
+<tr><td>1</td><td>BlackRock</td><td>Passivo</td><td>348.8M azioni (~8.4%), +0.7% nel trimestre</td></tr>
+<tr><td>2</td><td>Vanguard Capital Management</td><td>Passivo</td><td>275.0M (~6.6%), +0.2%</td></tr>
+<tr><td>3</td><td>State Street</td><td>Passivo</td><td>180.1M (~4.3%), +4.9%</td></tr>
+<tr><td>4</td><td>FMR (Fidelity)</td><td>Attivo</td><td>135.9M (~3.3%), <b>−33.6%</b></td></tr>
+<tr><td>5</td><td>Invesco</td><td>Misto/ETF</td><td>135.4M (~3.3%), +3.0%</td></tr>
+<tr><td>6</td><td>Geode Capital Management</td><td>Passivo</td><td>~110M (~2.6%), +7%</td></tr>
+<tr><td>7</td><td>Vanguard Portfolio Management</td><td>Passivo</td><td>75.1M (~1.8%)</td></tr>
+<tr><td>8</td><td>Capital Research Global Investors</td><td>Attivo</td><td>68.7M (~1.6%), +1.0%</td></tr>
+<tr><td>—</td><td>Pershing Square (Ackman)</td><td>Attivo concentrato</td><td>3.15M (~0.08%), <b>nuova posizione</b>, 4.9% del portafoglio del fondo</td></tr>
+</table>
+</div>
+<p>Dominano i fondi passivi, com'è normale per un titolo dell'S&amp;P 500 e del Nasdaq 100. Il dato attivo più rilevante è il taglio di un terzo della posizione di Fidelity nel Q2, compensato dall'ingresso di Pershing Square. Le posizioni dalla 9 alla 10 non sono state verificate. <span class="tag tag-verified">VERIFIED — TradeFilings, 13F Insight, Stockzoa (13F Q2 2026)</span></p>
+<p><b>Posizioni corte (short interest)</b>: 91.5 milioni di azioni = <b>2.22% del flottante</b>, 3.3 giorni di scambi medi per ricoprire (rilevazione del 31/08/2026), in calo da 104.1 milioni del 30/06. Livello basso: nessuna scommessa ribassista concentrata e nessun presupposto per una ricopertura forzata. <span class="tag tag-verified">VERIFIED — MarketBeat/AltIndex su dati FINRA</span></p>
+
+<h3>6.6 — Depositi anomali / segnali rossi</h3>
+<ul>
+<li>Nessun 10-K/A né NT 10-K/10-Q.</li>
+<li>Nessuna comunicazione aperta con la SEC (Item 1B: «None»).</li>
+<li>Parere del revisore Ernst &amp; Young senza rilievi; controllo interno efficace.</li>
+<li>Numerosi DFAN14A e 425 tra dicembre 2025 e febbraio 2026: materiale della battaglia per Warner Bros., normale in un'offerta contesa.</li>
+<li>44 moduli 144 (avvisi di vendita pianificata) coerenti con le vendite dei Form 4.</li>
+<li><b>Da monitorare</b>: il 10-Q del Q3 (fine ottobre) per eventuali nuove tasse indirette estere e per la voce «altre attività correnti», salita di $593M nel primo semestre.</li>
+</ul>
+<p><span class="tag tag-verified">VERIFIED — EDGAR, 10-K FY2025, 10-Q Q2 2026</span></p>
+
+<h3>6.7 — Monitoraggio persone influenti</h3>
+
+<div class="disclaimer-yellow">
+<strong>⚠️ Avvertenza</strong> — Le informazioni in questa sezione sono <b>contesto qualitativo, non un motivo per entrare</b>. I depositi dei politici arrivano fino a 45 giorni dopo l'operazione; i 13F arrivano 45 giorni dopo la fine del trimestre; le dichiarazioni pubbliche di amministratori e investitori famosi spesso difendono posizioni già costruite. Vanno usate per integrare la tesi delle parti 1-5, mai come ragione principale di acquisto. Il ragionamento «un personaggio famoso compra, quindi compro anch'io» è uno dei modi più diffusi di perdere soldi.
+</div>
+
+<h4>6.7.A — Politici USA e funzionari di governo (STOCK Act + OGE 278-T)</h4>
+<p>L'OGE Form 278-T è il modulo con cui i funzionari del ramo esecutivo USA, presidente compreso, dichiarano le proprie operazioni finanziarie, per fasce di importo e non per cifra esatta. Verifica eseguita il 2026-09-17 con 4 ricerche dedicate a Trump, lettura dei moduli OGE, ricerca su familiari e membri del governo, pagine congressuali QuiverQuant, PoliWealth e Congress Stock Tracker. La pagina CapitolTrades del titolo non ha restituito contenuto leggibile (caricamento solo JavaScript).</p>
+
+<h4 style="color:#FBBF24;">⭐ Evento altamente materiale: presidente Donald Trump (OGE Form 278-T)</h4>
+<div class="table-scroll">
+<table>
+<tr><th>Data operazione</th><th>Dichiarante</th><th>Tipo</th><th>Fascia di importo</th><th>Note</th></tr>
+<tr><td>2025-12-12 e 12-16</td><td>Presidente Trump</td><td>ACQUISTO obbligazioni Netflix</td><td>$500K-$1M (totale 2 operazioni)</td><td>Pochi giorni dopo l'accordo con Warner Bros. (5 dic); comunicato a gennaio 2026</td></tr>
+<tr><td>2026-01-02 e 01-20</td><td>Presidente Trump</td><td>ACQUISTO obbligazioni Netflix</td><td>$600K-$1.25M (totale 2 operazioni)</td><td>Durante la contesa con Paramount</td></tr>
+<tr><td>2026-02-04</td><td>Presidente Trump</td><td>ACQUISTO azioni NFLX</td><td>$100,001-$250,000</td><td>Acquisto singolo più grande del Q1; prezzo ~$80</td></tr>
+<tr><td><b>2026-02-10</b></td><td><b>Presidente Trump</b></td><td><b>VENDITA azioni NFLX</b></td><td><b>$1,000,001-$5,000,000</b></td><td>Vendita singola più grande; prezzo ~$82; depositata 2026-05-08, pubblicata 2026-05-14</td></tr>
+<tr><td>2026-03-02</td><td>Presidente Trump</td><td>ACQUISTO azioni NFLX («unsolicited»)</td><td>$100,001-$250,000</td><td>Prezzo ~$97, dopo l'uscita dall'asta</td></tr>
+<tr><td>Q1 2026 (totale)</td><td>Presidente Trump</td><td>Circa 12 acquisti più diverse vendite</td><td>Acquisti almeno $570K; vendite almeno $1.3M</td><td>Venditore netto</td></tr>
+<tr><td>2026-04-01 → 04-27</td><td>Presidente Trump</td><td>5 operazioni miste</td><td>Da $1K-$15K a $100K-$250K</td><td>Vendite $100K-$250K e $50K-$100K il 27/04 (~$91)</td></tr>
+<tr><td>2026-05-22</td><td>Presidente Trump</td><td>VENDITA azioni NFLX</td><td>$50,001-$100,000</td><td>Prezzo ~$89</td></tr>
+<tr><td><b>2026-06-18</b></td><td><b>Presidente Trump</b></td><td><b>VENDITA azioni NFLX</b></td><td><b>$500,001-$1,000,000</b></td><td>Più altre 3 vendite a giugno ($15K-$100K) e 2 acquisti da $1K-$15K; prezzo ~$77; depositata 2026-08-22</td></tr>
+</table>
+</div>
+<p><b>Contesto</b>: gli account di Trump hanno eseguito circa 28,700 operazioni in 17 mesi, più di tutto il Congresso insieme. La Casa Bianca dichiara che il portafoglio è gestito in conti discrezionali con modelli che replicano indici come lo Schwab 1000 e che il presidente non indirizza le operazioni. Nel rapporto annuale OGE 2026 compaiono anche obbligazioni Netflix 5.375% con scadenza 2029 <span class="tag tag-uncertain">UNCERTAIN — fascia di valore non leggibile con certezza nel PDF</span>. <span class="tag tag-verified">VERIFIED — OGE 278-T 05.08.2026 e 06.25.2026, Deadline 2026-05-15 e 2026-08-27, Reuters 2026-03-09, Bloomberg 2026-09-15, OGE 278e annuale</span></p>
+<p><b>Rispetto al prezzo attuale</b>: la vendita più grande (10 febbraio, ~$82) è stata tempestiva, circa −8% da allora. L'acquisto del 2 marzo (~$97) è in perdita di circa il 22%. La vendita di giugno (~$77) è quasi in pari. <span class="tag tag-inferred">INFERRED — prezzi di chiusura Yahoo nelle date indicate</span></p>
+
+<p><b>Altri politici rilevanti (ultimi 12 mesi)</b>:</p>
+<div class="table-scroll">
+<table>
+<tr><th>Politico</th><th>Operazione più rilevante</th><th>Tipo</th><th>Note</th></tr>
+<tr><td>Cleo Fields (D-LA, Camera)</td><td>2025-10-31 → 11-20 e 2026-01-20</td><td>4 ACQUISTI $100K-$250K + 1 da $50K-$100K</td><td>Il più grande acquirente del Congresso; ingressi tra $87 e $112, oggi in perdita</td></tr>
+<tr><td>Jonathan Jackson (D-IL, Camera)</td><td>2025-12-08</td><td>VENDITA $50K-$100K</td><td>A ~$97</td></tr>
+<tr><td>Alan Armstrong (R-OK, Senato)</td><td>2026-03-27</td><td>ACQUISTO $15K-$50K</td><td>Dimensione modesta</td></tr>
+<tr><td>Byron Donalds (R-FL, Camera)</td><td>2026-03-20 e 2026-08-12</td><td>ACQUISTI $1K-$15K</td><td>Conto IRA gestito; ultimo deposito 2026-09-15</td></tr>
+<tr><td>Michael McCaul (R-TX, Camera)</td><td>gen-feb 2026 / 2026-05-14</td><td>Acquisti $1K-$15K / vendita $15K-$50K</td><td>Piccole dimensioni</td></tr>
+<tr><td>Ro Khanna (D-CA, Camera)</td><td>gen → ago 2026</td><td>Decine di acquisti e vendite $1K-$15K</td><td>Conti di coniuge e figli, attività di routine</td></tr>
+</table>
+</div>
+<p><b>Familiari e governo</b>: nessuna operazione su Netflix tracciabile per Donald Trump Jr., Eric Trump, Ivanka Trump, Jared Kushner, Howard Lutnick o Scott Bessent negli ultimi 12 mesi. <span class="tag tag-verified">VERIFIED — ricerca Exa 2026-09-17</span></p>
+<p><b>Interpretazione delle operazioni</b>: nel 2026 il conto Trump è stato venditore netto di azioni Netflix (almeno $2.1M venduti contro almeno $0.6M comprati) e compratore di obbligazioni Netflix durante la contesa Warner Bros. Le obbligazioni pagano indipendentemente dal prezzo dell'azione. Il 22 febbraio 2026 Trump ha chiesto pubblicamente a Netflix di rimuovere Susan Rice dal consiglio, pochi giorni dopo acquisti per almeno $250K. <span class="tag tag-verified">VERIFIED — Yahoo Finance 2026-05-20</span></p>
+<p><b>Rilevanza per la tesi</b>: bassa come segnale di direzione. Il portafoglio è gestito con modelli automatici, il ritardo di pubblicazione arriva a 45 giorni e i volumi su NFLX sono piccoli rispetto a un portafoglio da centinaia di milioni. La rilevanza vera è politica: il presidente ha attaccato pubblicamente la governance di Netflix e l'amministrazione ha sostenuto l'acquisizione di Warner Bros. da parte di Paramount (il Dipartimento della Giustizia ha chiuso l'indagine senza contestazioni il 12 giugno 2026). <span class="tag tag-verified">VERIFIED — DOJ 2026-06-12</span></p>
+
+<h4>6.7.B — CEO e leadership del settore (ultimi 90 giorni)</h4>
+<div class="table-scroll">
+<table>
+<tr><th>Data</th><th>Persona</th><th>Ruolo</th><th>Contesto</th><th>Sintesi</th></tr>
+<tr><td>2026-07-16</td><td>Greg Peters</td><td>Co-CEO Netflix</td><td>Risultati Q2</td><td>«Non tutte le ore valgono uguale»; il live pesa il 5% del budget e l'1% delle ore, ma porta i picchi di nuovi abbonati.</td></tr>
+<tr><td>2026-07-16</td><td>Ted Sarandos</td><td>Co-CEO Netflix</td><td>Risultati Q2</td><td>Ammortamento contenuti +10% nel 2026, crescita della spesa sotto quella dei ricavi.</td></tr>
+<tr><td>2026-08-05/07</td><td>Ted Sarandos</td><td>Co-CEO Netflix</td><td>Interviste in India</td><td>Nessuna intenzione di comprare stagioni sportive intere; circa 300 produzioni usano strumenti di intelligenza artificiale.</td></tr>
+<tr><td>2026-09-08</td><td>Paramount Skydance (David Ellison)</td><td>Concorrente</td><td>Comunicato</td><td>Fusione con Warner Bros. pronta a chiudersi, bloccata solo dalle cause degli stati; mediazione a ottobre.</td></tr>
+<tr><td>2026-09-10</td><td>Greg Peters</td><td>Co-CEO Netflix</td><td>Sydney Morning Herald</td><td>Infrastruttura live molto migliorata (partita NFL da Melbourne); raccomandazioni conversazionali con l'intelligenza artificiale in arrivo.</td></tr>
+<tr><td>2026-09-17</td><td>Bela Bajaria</td><td>Direttrice contenuti Netflix</td><td>Intervista</td><td>Respinge l'idea che i giovani guardino solo contenuti brevi; eventi, sport e pubblicità per acquisire abbonati.</td></tr>
+</table>
+</div>
+<p>Le dichiarazioni del management sono coerenti ma difensive: spiegano perché le ore contano meno, invece di mostrare che crescono. Il dato verificabile è il riacquisto da $4.7B nel Q2, non le parole. <span class="tag tag-verified">VERIFIED — ScreenMDM, Economic Times, Indian Express, Paramount PR, Benzinga</span></p>
+
+<h4>6.7.C — Investitori istituzionali con voce pubblica</h4>
+<div class="table-scroll">
+<table>
+<tr><th>Investitore</th><th>Evidenza</th><th>Posizione</th><th>Data</th><th>Sintesi della tesi</th></tr>
+<tr><td>Bill Ackman — Pershing Square</td><td>Lettera semestrale + 13F</td><td>3.15M azioni, 4.9% del portafoglio, nuova</td><td>2026-08-13 (posizione al 30/06)</td><td>Netflix «ha vinto la guerra dello streaming»; ricavi a doppia cifra, costi dei contenuti più lenti, utili vicini a +20% annuo e riacquisti; P/E atteso sceso da oltre 40x a circa 21x.</td></tr>
+</table>
+</div>
+<p>Pershing aveva già posseduto Netflix nel 2022 e l'aveva venduta in perdita (circa $400M) dopo tre mesi. Il ritorno avviene a una valutazione dimezzata; il prezzo medio del Q2 è stato circa $88 (range $70.86-$108.95), quindi la posizione è probabilmente in perdita. <span class="tag tag-verified">VERIFIED — CNBC 2026-08-13, Quartz, Forbes 2026-08-14</span> <span class="tag tag-inferred">INFERRED — prezzo di carico stimato sul range del trimestre</span></p>
+
+<h4>6.7.D — Report ribassisti e giudizi di analisti rilevanti (12 mesi)</h4>
+<div class="table-scroll">
+<table>
+<tr><th>Data</th><th>Società</th><th>Tipo</th><th>Note</th></tr>
+<tr><td>2026-04-17</td><td>Wolfe Research</td><td>Outperform, target $110 → $107</td><td>Dopo la guida Q2 debole</td></tr>
+<tr><td>2026-07-17</td><td>JPMorgan</td><td>Overweight, target $118 → $85</td><td>Taglio più ampio; dubbi su engagement e ritorno della spesa in contenuti</td></tr>
+<tr><td>2026-07-17</td><td>Goldman Sachs</td><td>Buy, target $110 → $94</td><td>Il dibattito sull'engagement non si chiude</td></tr>
+<tr><td>2026-07-17</td><td>Bank of America</td><td>Buy, target $125 → $105</td><td>Rischio già in larga parte nel prezzo</td></tr>
+<tr><td>2026-07-17</td><td>Morgan Stanley</td><td>Overweight, target $90 → $83</td><td>Timori sull'engagement «esagerati»</td></tr>
+<tr><td>2026-07-17</td><td>Barclays</td><td>Equal Weight, target $85 → $80</td><td>Netflix «sta perdendo il controllo della narrazione»</td></tr>
+<tr><td>2026-07-17</td><td>Pivotal Research</td><td>Hold, target $96 → $70</td><td>Unico target sotto il prezzo attuale tra quelli verificati</td></tr>
+<tr><td>2026-07-17</td><td>Wolfe / TD Cowen</td><td>Outperform $107 → $84 / Buy $112 → $100</td><td>—</td></tr>
+<tr><td>2026-09-14</td><td>Evercore ISI</td><td>Outperform, target $100 → $110</td><td>Abbonati in miglioramento in USA e Giappone; titolo +4% nella seduta</td></tr>
+<tr><td>—</td><td>—</td><td>Nessun report ribassista (Hindenburg, Muddy Waters, Citron, Kerrisdale, Spruce Point)</td><td>Ricerca del 2026-09-17</td></tr>
+</table>
+</div>
+<p>Target medio a 1 anno degli analisti (TradingView): <b>$94.54</b> (rating Buy), +25.4% dal prezzo attuale. <span class="tag tag-verified">VERIFIED — TradingView 2026-09-17; Gate/CNBC, AOL, MarketScreener, Benzinga per i singoli giudizi</span></p>
+
+<h4>6.7.E — Sintesi e ponderazione</h4>
+<div class="verdict-box">
+<p><b>Segnali contrastanti, nessun allineamento</b>. A favore: un investitore attivista di qualità (Pershing Square) entra con il 4.9% del fondo, gli analisti mantengono in larga maggioranza giudizi positivi e il riacquisto societario è record. Contro: gli insider vendono senza comprare, Fidelity taglia un terzo della posizione, il conto Trump è venditore netto di azioni e compratore di obbligazioni, e 8 grandi banche hanno tagliato i target a luglio. Nessuna posizione corta concentrata né report ribassista.</p>
+<p><b>Avvertenza</b>: le operazioni Trump arrivano da un portafoglio gestito con modelli e sono pubblicate con 45-60 giorni di ritardo; la lettera di Ackman difende una posizione già costruita. Nessuno dei due è un segnale di tempistica.</p>
+<p><b>Verdetto operativo 6.7</b>: <b>neutro rispetto alla tesi della Parte 3</b>. Non cambia il rating HOLD / SPECULATIVE BUY; l'ingresso di Pershing sostiene la tesi rialzista di lungo periodo, ma l'assenza totale di acquisti da parte dei dirigenti impedisce di alzare la convinzione oltre MEDIUM.</p>
+</div>
+</section>
+
+<!-- PART 7 -->
+<section id="parte-7">
+<h2><span class="num">7.</span>Analisi Tecnica e Piano Operativo</h2>
+
+<h3>7.1 — Trend primario</h3>
+<div class="table-scroll">
+<table>
+<tr><th>Indicatore</th><th>Valore</th><th>Lettura</th></tr>
+<tr><td>Prezzo</td><td class="num">$75.41</td><td>—</td></tr>
+<tr><td>SMA 9 giorni</td><td class="num">$77.17</td><td><span class="chg-neg">Sotto (−2.3%)</span></td></tr>
+<tr><td>SMA 21 giorni</td><td class="num">$79.38</td><td><span class="chg-neg">Sotto (−5.0%)</span></td></tr>
+<tr><td>SMA 50 giorni</td><td class="num">$75.79</td><td><span class="chg-neg">Sotto (−0.5%)</span></td></tr>
+<tr><td>SMA 100 giorni</td><td class="num">$79.45</td><td><span class="chg-neg">Sotto (−5.1%)</span></td></tr>
+<tr><td>SMA 150 giorni</td><td class="num">$84.01</td><td><span class="chg-neg">Sotto (−10.2%)</span></td></tr>
+<tr><td><b>SMA 200 giorni</b></td><td class="num"><b>$85.67</b></td><td><b><span class="chg-neg">Sotto (−12.0%)</span></b></td></tr>
+<tr><td>EMA 200 giorni</td><td class="num">$86.02</td><td><span class="chg-neg">Sotto (−12.3%)</span></td></tr>
+</table>
+</div>
+<p><b>Lettura</b>: la SMA (media mobile semplice) è la media dei prezzi di chiusura degli ultimi N giorni; l'EMA dà più peso ai giorni recenti. Il prezzo è sotto tutte le medie. La SMA200 scende da oltre un anno: il trend primario resta <b>ribassista</b>. La SMA50 ha però smesso di scendere e il prezzo ci oscilla intorno da un mese, segnale di una base in formazione tra $65 e $84. Il rating delle medie mobili di TradingView è «Strong sell» su giornaliero e settimanale. <span class="tag tag-verified">VERIFIED — TradingView, Yahoo Finance</span></p>
+
+<h3>7.2 — Livelli chiave</h3>
+<ul>
+<li><b>Supporti</b>: $74.7-75.0 (minimo del mese $75.03, banda di Bollinger inferiore $74.69, pivot giornaliero S1 $74.67) → $70.3-70.7 (pivot settimanali S1/S2) → <b>$65.08</b> (minimo 52 settimane, 17 luglio) → $58 (pivot giornaliero S3).</li>
+<li><b>Resistenze</b>: $79.4 (SMA21, SMA100, centro delle bande di Bollinger) → $83.6 (massimo del 3 settembre) → <b>$84-86</b> (SMA150, SMA200, EMA200) → $98.7-106.6 (vuoto di prezzo del 17 aprile mai richiuso) → $108.9 (massimo 6 mesi) → $124.9 (massimo 52 settimane).</li>
+<li><b>Vuoti di prezzo aperti</b>: ribassista del 17 aprile tra $98.74 e $106.62, ancora aperto e lontano; rialzista del 13 agosto tra $74.67 e $75.44, quasi richiuso oggi (minimo di seduta $75.37).</li>
+<li><b>Massimo 52 settimane</b>: $124.86 (21 ottobre 2025).</li>
+</ul>
+<p><span class="tag tag-verified">VERIFIED — TradingView pivot e bande 2026-09-17, Yahoo Finance per i vuoti di prezzo (calcolo)</span></p>
+
+<h3>7.3 — Momentum</h3>
+<div class="table-scroll">
+<table>
+<tr><th>RSI</th><th>Valore</th><th>Lettura</th></tr>
+<tr><td>RSI 14 giornaliero</td><td class="num">43.4</td><td>Neutro con inclinazione negativa</td></tr>
+<tr><td>RSI 14 settimanale</td><td class="num">41.3</td><td><span class="chg-neg">Sotto 50, momentum debole</span></td></tr>
+<tr><td>RSI 14 mensile</td><td class="num">44.1</td><td>Neutro, lontano dall'ipervenduto</td></tr>
+</table>
+</div>
+<p>L'RSI (indice di forza relativa) va da 0 a 100: sotto 30 indica vendite eccessive, sopra 70 acquisti eccessivi. Su tutti i timeframe Netflix è tra 41 e 44: nessun eccesso da sfruttare. Il MACD giornaliero (differenza tra due medie esponenziali) è appena sceso sotto la sua linea di segnale (−0.04 contro 0.59), un incrocio ribassista di breve. Lo stocastico giornaliero a 4.5 indica ipervenduto di brevissimo periodo, compatibile con un rimbalzo tecnico verso $79. L'ADX a 16 segnala un trend debole, cioè una fase laterale più che una discesa forte. <span class="tag tag-verified">VERIFIED — TradingView 2026-09-17</span></p>
+
+<h3>7.4 — Forza relativa (vs SPY / QQQ)</h3>
+<ul>
+<li>3 mesi: NFLX −2.5% contro SPY +1.9% e QQQ −3.4%: in linea con il Nasdaq, poco sotto l'S&amp;P 500.</li>
+<li>6 mesi: NFLX −17.8% contro SPY +15.3% e QQQ +20.6% → sottoperformance di 33-38 punti.</li>
+<li>12 mesi: NFLX −38.6% contro SPY +15.4% e QQQ +21.2% → sottoperformance di 54-60 punti.</li>
+<li>Da inizio anno: NFLX −19.5% contro SPY +11.6% e QQQ +16.4%. Tra i concorrenti: Disney −6.5%, Spotify −8.4%, Roku +41.5%.</li>
+</ul>
+<p>La sottoperformance di lungo periodo è estrema; negli ultimi 3 mesi il titolo ha smesso di peggiorare rispetto al Nasdaq. È il primo segnale, ancora debole, di stabilizzazione relativa. <span class="tag tag-verified">VERIFIED — calcolo su Yahoo Finance; TradingView per i concorrenti</span></p>
+
+<h3>7.5 — Volumi</h3>
+<ul>
+<li>Media 10 giorni 25.5M azioni contro 38.3M a 90 giorni (−33%): volumi in contrazione durante il rimbalzo.</li>
+<li>Picchi di volume sulle discese: 142M il 17 luglio (3.7 volte la media a 90 giorni) e 126M il 17 aprile. Il picco più alto dei 24 mesi è stato al rialzo: 201M il 27 febbraio (uscita dall'asta Warner Bros.).</li>
+<li>Chaikin Money Flow a 20 giorni −0.10 e Money Flow Index 36.5: prevale una distribuzione leggera, cioè più volume sulle giornate negative.</li>
+</ul>
+<p>Il rimbalzo da $65 a $84 è avvenuto su volumi bassi: non ha la firma di un'accumulazione istituzionale aggressiva. Per confermare un'inversione serve una rottura sopra $86 (SMA200) con volumi sopra la media. <span class="tag tag-verified">VERIFIED — TradingView, Yahoo Finance</span></p>
+
+<h3>7.6 — Piano operativo concreto</h3>
+
+<div class="verdict-box">
+<h4>Setup di acquisto azioni (orizzonte 12-24 mesi)</h4>
+<div class="table-scroll">
+<table>
+<tr><th>Parametro</th><th>Valore</th></tr>
+<tr><td><b>Zona di ingresso ottimale</b></td><td>$68-72 (pivot settimanali S1/S2, banda di Bollinger 50 giorni inferiore $67.76)</td></tr>
+<tr><td>Ingresso aggressivo</td><td>$74-77 (prezzo attuale, accettando un possibile ritorno a $65)</td></tr>
+<tr><td><b>Stop strutturale</b></td><td><b>$63</b> (chiusura settimanale sotto il minimo 52 settimane $65.08)</td></tr>
+<tr><td>Stop di emergenza</td><td>$58 (pivot giornaliero S3)</td></tr>
+<tr><td>Target 1 (T1)</td><td>$84-86 (SMA150/SMA200)</td></tr>
+<tr><td>Target 2 (T2)</td><td>$95 (scenario base e target medio degli analisti)</td></tr>
+<tr><td>Target 3 (T3, scenario rialzista)</td><td>$110-131 (target Evercore / scenario bull)</td></tr>
+<tr><td><b>Rapporto rendimento/rischio con ingresso $75 / stop $63 / T2 $95</b></td><td><b>~1.7:1</b></td></tr>
+<tr><td>Rapporto con ingresso $70 / stop $63 / T2 $95</td><td>~3.6:1</td></tr>
+<tr><td><b>Dimensionamento</b></td><td>A rate: un terzo tra $74 e $77, un terzo tra $68 e $72, un terzo dopo i risultati del 20 ottobre se la guida conferma crescita ≥11%; posizione totale moderata (1-3% del capitale) per la volatilità implicita elevata (~37-40%)</td></tr>
+</table>
+</div>
+
+<div class="verdict-box">
+<h4>Alternativa LEAPS (opzioni a lunga scadenza)</h4>
+<p>Le LEAPS sono opzioni con scadenza oltre un anno: permettono di esporsi al rialzo impegnando meno capitale, con perdita massima pari al premio pagato.</p>
+<ul>
+<li><b>Call gennaio 2028 strike $80</b>: coglie lo scenario base ($95). Premio stimato $11-13 (delta ~0.58). Pareggio a scadenza ~$92.</li>
+<li><b>Call gennaio 2028 strike $90</b>: più economica, punta allo scenario rialzista. Premio stimato $8-10 (delta ~0.47). Pareggio ~$99.</li>
+<li><b>Da evitare</b>: opzioni mensili o trimestrali a cavallo dei risultati del 20 ottobre (volatilità elevata e decadimento temporale veloce con trend ancora negativo).</li>
+<li>Valutare la <b>vendita di put</b> strike $65 scadenza marzo 2027 (premio stimato ~$2.8, prezzo di acquisto effettivo ~$62 se esercitata) oppure strike $68 giugno 2027 (~$4.9, prezzo effettivo ~$63).</li>
+</ul>
+<p style="font-size:12px;color:var(--text-3);">Premi stimati con modello Black-Scholes <span class="tag tag-inferred">INFERRED — volatilità implicita 35-37%, tasso 4.5%, dedotta dal range a 1 anno prezzato dalle opzioni ($54-$119)</span>. Verificare le quotazioni reali sulla catena delle opzioni prima di operare.</p>
+</div>
+</div>
+</section>
+
+<!-- VERDICT -->
+<div id="verdict" class="final-verdict">
+<h2>Verdetto finale</h2>
+
+<div class="fv-grid">
+<div class="fv-item"><div class="lbl">Rating</div><div class="val"><span class="badge badge-amber">HOLD / SPECULATIVE BUY</span></div></div>
+<div class="fv-item"><div class="lbl">Convinzione</div><div class="val"><span class="badge badge-amber">MEDIUM</span></div></div>
+<div class="fv-item"><div class="lbl">Target base 18-24 mesi</div><div class="val">$95 (+26%)</div></div>
+<div class="fv-item"><div class="lbl">Valore atteso</div><div class="val">$92 (+22%)</div></div>
+<div class="fv-item"><div class="lbl">Stop strutturale</div><div class="val">$63</div></div>
+<div class="fv-item"><div class="lbl">Orizzonte</div><div class="val">12-24 mesi</div></div>
+</div>
+
+<h3>Condizioni che invalidano la tesi</h3>
+<ul>
+<li><b>Quantitativa</b>: chiusura settimanale sotto $63 con volumi sopra la media.</li>
+<li><b>Fondamentale</b>: ricavi Q3 sotto $12.7B oppure guida 2027 con crescita dei ricavi sotto il 10% → il rallentamento diventa strutturale.</li>
+<li><b>Margine</b>: guida del margine operativo 2027 non superiore al 31.5% del 2026 → la leva operativa, pilastro della crescita degli utili, si ferma.</li>
+<li><b>Insider e capitale</b>: riacquisto trimestrale sotto $1.5B o vendite discrezionali (fuori piano 10b5-1) dei co-CEO superiori a $10M.</li>
+<li><b>M&amp;A</b>: ritorno a un'acquisizione di grande dimensione finanziata a debito (oltre $20B), dopo aver definito Warner Bros. un «nice to have».</li>
+</ul>
+
+<h3>Calendario degli eventi dei prossimi 6 mesi</h3>
+<div class="table-scroll">
+<table>
+<tr><th>Data</th><th>Evento</th><th>Impatto atteso</th></tr>
+<tr><td>Ottobre 2026</td><td>Mediazione Paramount – procuratore generale della California</td><td>Un accordo sblocca la fusione Paramount-Warner Bros.: nasce un concorrente più grande</td></tr>
+<tr><td><b>2026-10-20</b></td><td><b>Risultati Q3 2026</b></td><td><b>Evento principale</b>: crescita dei ricavi vs 11.7%, guida Q4, flusso di cassa, riacquisto</td></tr>
+<tr><td>Novembre 2026</td><td>Rimborso di $1B di note al 4.375%</td><td>Neutro, già rifinanziato a luglio</td></tr>
+<tr><td>25 dicembre 2026</td><td>Partite NFL di Natale in streaming</td><td>Test di pubblicità e picchi di nuovi abbonati <span class="tag tag-uncertain">UNCERTAIN — calendario 2026 non verificato</span></td></tr>
+<tr><td>Metà-fine gennaio 2027</td><td>Risultati Q4 e guida 2027</td><td>Il vero spartiacque: crescita e margine 2027 <span class="tag tag-inferred">INFERRED — data non annunciata, schema degli anni precedenti</span></td></tr>
+<tr><td>Marzo 2027</td><td>Processo stati vs Paramount-Warner Bros.</td><td>Se la fusione salta, per Netflix si riduce il rischio competitivo</td></tr>
+</table>
+</div>
+
+<h3>Sintesi finale</h3>
+<p>Netflix a $75.41 è un'azienda di altissima qualità che il mercato ha declassato da titolo di crescita a titolo maturo. Il declassamento ha basi reali: ricavi in rallentamento verso l'11%, engagement quasi fermo, meno dati comunicati. Ha anche portato il multiplo a circa 20 volte gli utili 2027, metà della mediana storica. I margini più alti del settore e un riacquisto da $27 miliardi rendono la discesa ulteriore meno probabile, e l'ingresso di Pershing Square conferma che il denaro paziente vede valore. Ma il DCF colloca il valore equo tra $70 e $87: il margine di sicurezza non è ampio e dipende dal prezzo di ingresso. La scelta coerente è costruire la posizione a rate, con la parte principale tra $68 e $72 o dopo che i risultati del 20 ottobre avranno mostrato una crescita stabilizzata, e con uno stop sotto il minimo annuale. Il valore atteso di +22% a 18-24 mesi remunera il rischio, non lo elimina.</p>
+<p><b>L'orizzonte della tesi è medio-lungo termine (12-24 mesi) e il setup va dimensionato e gestito come posizione strategica, distinta dal capitale di trading tattico a breve.</b></p>
+</div>
+
+<!-- FOOTER -->
+<footer>
+<p><b>Fonti consultate</b>:</p>
+<ul style="margin: 6px 0; font-size:11.5px;">
+<li>TradingView Watchlist 2026-09-17 — multipli, medie mobili, RSI, pivot, confronto con i concorrenti, target degli analisti</li>
+<li>SEC EDGAR — 10-K FY2025 (2026-01-23), 10-Q Q1 2026 (2026-04-17) e Q2 2026 (2026-07-17), DEF 14A 2026 (2026-04-16), 8-K del 2025-11-14, 2025-12-22, 2026-01-20, 2026-02-27, 2026-04-16, 2026-04-22, 2026-06-05, 2026-07-16, 2026-07-22, 2026-07-30; 192 Form 4 (2025-09-17 → 2026-09-17); dati XBRL companyfacts</li>
+<li>Yahoo Finance API — 502 candele giornaliere OHLCV per il grafico a 24 mesi e 7 anni di chiusure per i multipli storici, scaricate il 2026-09-17</li>
+<li><b>OGE Form 278-T presidente Trump</b> (depositati 2026-05-08, 2026-06-25, 2026-08-22) e OGE 278e annuale 2026 — operazioni su azioni e obbligazioni Netflix; Deadline, Variety, Reuters, CNBC, Yahoo Finance, Bloomberg</li>
+<li>QuiverQuant, PoliWealth, Congress Stock Tracker, House Clerk PTR — operazioni dei membri del Congresso (CapitolTrades non leggibile)</li>
+<li>MarketBeat, AltIndex, Barchart, TradeFilings, 13F Insight, Stockzoa — posizioni corte e proprietà istituzionale</li>
+<li>Netflix IR e lettera agli azionisti Q2 2026; CapEdge e ScreenMDM (conference call Q2)</li>
+<li>CNBC, Quartz, Forbes — lettera Pershing Square 2026-08-13</li>
+<li>AOL/24/7 Wall St, TheWrap, Invezz, Gate News, MarketScreener, Benzinga — reazioni ai risultati e giudizi degli analisti</li>
+<li>Variety, AP, Bloomberg Law, BBC, Deadline — vicenda Warner Bros.; Reuters, LA Times, DOJ, Paramount — stato della fusione Paramount-Warner Bros.</li>
+<li>Economic Times, Indian Express, Sydney Morning Herald, Stratechery — dichiarazioni dei co-CEO</li>
+</ul>
+<p style="margin-top: 14px;"><b>Avvertenza</b>: istantanea statica basata sui dati TradingView al 2026-09-17. Per grafico a candele in tempo reale e indicatori aggiornati consultare TradingView. Il grafico di questa pagina è ricostruito dai dati giornalieri Yahoo Finance e <b>non sostituisce</b> un grafico live. Tutti i valori precedenti al 2025-11-17 sono rettificati per il frazionamento 10:1 (÷10).</p>
+<p><b>Questo documento non costituisce consulenza finanziaria.</b> Le decisioni di investimento sono responsabilità esclusiva del lettore. L'analisi riflette opinioni basate su fonti pubbliche al momento della stesura e può contenere errori, omissioni o interpretazioni soggettive.</p>
+</footer>
+
+
+</div>
+
+<script>
+// Data: Yahoo Finance API daily OHLCV (split-adjusted), retrieved 2026-09-17; SMA50/SMA200 computed server-side
+const candleData = [{"x":1726531200000,"o":70.08,"h":70.76,"l":69.84,"c":70.69},{"x":1726617600000,"o":70.75,"h":70.75,"l":68.8,"c":69.05},{"x":1726704000000,"o":70.5,"h":71.57,"l":69.54,"c":70.43},{"x":1726790400000,"o":70.56,"h":70.67,"l":69.63,"c":70.1},{"x":1727049600000,"o":70.24,"h":71.22,"l":69.92,"c":70.54},{"x":1727136000000,"o":70.66,"h":72.24,"l":70.44,"c":72.23},{"x":1727222400000,"o":72.1,"h":72.51,"l":71.62,"c":72.16},{"x":1727308800000,"o":72.47,"h":72.53,"l":70.17,"c":71.14},{"x":1727395200000,"o":70.84,"h":71.07,"l":70.12,"c":70.74},{"x":1727654400000,"o":70.7,"h":71.12,"l":70.28,"c":70.93},{"x":1727740800000,"o":71.36,"h":71.78,"l":69.86,"c":70.61},{"x":1727827200000,"o":70.61,"h":71.62,"l":70.47,"c":71.11},{"x":1727913600000,"o":70.43,"h":70.88,"l":70.0,"c":70.68},{"x":1728000000000,"o":71.33,"h":72.1,"l":70.88,"c":71.97},{"x":1728259200000,"o":71.48,"h":71.59,"l":69.64,"c":70.19},{"x":1728345600000,"o":70.39,"h":72.51,"l":70.36,"c":72.18},{"x":1728432000000,"o":71.93,"h":72.86,"l":71.89,"c":72.74},{"x":1728518400000,"o":72.33,"h":73.39,"l":72.25,"c":73.03},{"x":1728604800000,"o":73.49,"h":73.6,"l":72.12,"c":72.28},{"x":1728864000000,"o":72.5,"h":72.66,"l":71.13,"c":71.3},{"x":1728950400000,"o":71.25,"h":71.34,"l":69.98,"c":70.6},{"x":1729036800000,"o":70.34,"h":70.56,"l":69.78,"c":70.2},{"x":1729123200000,"o":70.43,"h":70.44,"l":67.79,"c":68.76},{"x":1729209600000,"o":73.76,"h":76.63,"l":73.62,"c":76.39},{"x":1729468800000,"o":76.58,"h":77.3,"l":75.66,"c":77.21},{"x":1729555200000,"o":76.53,"h":76.97,"l":76.11,"c":76.42},{"x":1729641600000,"o":76.28,"h":76.38,"l":74.43,"c":74.93},{"x":1729728000000,"o":75.2,"h":75.58,"l":74.62,"c":75.46},{"x":1729814400000,"o":75.62,"h":76.85,"l":75.35,"c":75.47},{"x":1730073600000,"o":75.87,"h":75.87,"l":74.79,"c":74.91},{"x":1730160000000,"o":75.11,"h":76.39,"l":74.8,"c":75.94},{"x":1730246400000,"o":75.81,"h":75.98,"l":75.23,"c":75.37},{"x":1730332800000,"o":75.39,"h":76.08,"l":75.22,"c":75.6},{"x":1730419200000,"o":75.35,"h":76.38,"l":74.78,"c":75.61},{"x":1730678400000,"o":75.31,"h":76.25,"l":74.97,"c":75.55},{"x":1730764800000,"o":75.74,"h":76.75,"l":75.63,"c":76.39},{"x":1730851200000,"o":77.15,"h":78.15,"l":75.74,"c":78.02},{"x":1730937600000,"o":78.14,"h":79.82,"l":77.99,"c":79.65},{"x":1731024000000,"o":79.74,"h":79.91,"l":78.86,"c":79.5},{"x":1731283200000,"o":79.59,"h":80.68,"l":79.56,"c":80.54},{"x":1731369600000,"o":80.75,"h":82.04,"l":80.38,"c":81.95},{"x":1731456000000,"o":82.26,"h":83.7,"l":82.05,"c":83.05},{"x":1731542400000,"o":83.37,"h":84.1,"l":83.0,"c":83.73},{"x":1731628800000,"o":83.2,"h":83.2,"l":81.65,"c":82.4},{"x":1731888000000,"o":81.55,"h":84.85,"l":80.93,"c":84.71},{"x":1731974400000,"o":83.97,"h":87.45,"l":83.92,"c":87.13},{"x":1732060800000,"o":88.0,"h":89.06,"l":86.84,"c":88.39},{"x":1732147200000,"o":88.39,"h":90.8,"l":87.72,"c":89.75},{"x":1732233600000,"o":89.6,"h":90.6,"l":89.3,"c":89.78},{"x":1732492800000,"o":90.21,"h":90.21,"l":86.42,"c":86.56},{"x":1732579200000,"o":86.75,"h":88.64,"l":86.72,"c":87.26},{"x":1732665600000,"o":87.21,"h":88.1,"l":85.89,"c":87.73},{"x":1732838400000,"o":88.22,"h":89.24,"l":87.67,"c":88.68},{"x":1733097600000,"o":88.75,"h":90.23,"l":88.41,"c":89.77},{"x":1733184000000,"o":89.44,"h":90.27,"l":88.8,"c":90.22},{"x":1733270400000,"o":89.81,"h":91.6,"l":89.81,"c":91.11},{"x":1733356800000,"o":91.79,"h":92.7,"l":91.11,"c":91.79},{"x":1733443200000,"o":91.52,"h":93.53,"l":91.27,"c":93.47},{"x":1733702400000,"o":92.8,"h":93.03,"l":90.26,"c":91.37},{"x":1733788800000,"o":91.38,"h":92.29,"l":90.96,"c":91.33},{"x":1733875200000,"o":92.47,"h":94.18,"l":92.31,"c":93.66},{"x":1733961600000,"o":93.33,"h":93.41,"l":92.26,"c":92.56},{"x":1734048000000,"o":91.68,"h":92.56,"l":90.96,"c":91.89},{"x":1734307200000,"o":92.39,"h":92.89,"l":91.95,"c":92.11},{"x":1734393600000,"o":92.15,"h":92.85,"l":91.64,"c":91.91},{"x":1734480000000,"o":91.91,"h":92.24,"l":88.66,"c":88.96},{"x":1734566400000,"o":90.82,"h":91.26,"l":89.9,"c":90.2},{"x":1734652800000,"o":89.32,"h":91.99,"l":89.05,"c":90.9},{"x":1734912000000,"o":91.34,"h":91.5,"l":89.91,"c":91.14},{"x":1734998400000,"o":91.5,"h":93.58,"l":91.17,"c":93.21},{"x":1735171200000,"o":92.84,"h":93.05,"l":91.53,"c":92.41},{"x":1735257600000,"o":91.6,"h":91.81,"l":89.45,"c":90.75},{"x":1735516800000,"o":89.45,"h":90.82,"l":88.97,"c":90.04},{"x":1735603200000,"o":90.18,"h":90.27,"l":88.95,"c":89.13},{"x":1735776000000,"o":89.55,"h":89.86,"l":87.7,"c":88.67},{"x":1735862400000,"o":89.31,"h":89.88,"l":87.99,"c":88.11},{"x":1736121600000,"o":88.88,"h":89.28,"l":87.17,"c":88.18},{"x":1736208000000,"o":87.94,"h":88.8,"l":86.91,"c":87.92},{"x":1736294400000,"o":88.0,"h":88.62,"l":87.3,"c":87.5},{"x":1736467200000,"o":86.64,"h":86.64,"l":83.44,"c":83.77},{"x":1736726400000,"o":83.15,"h":84.71,"l":82.91,"c":84.03},{"x":1736812800000,"o":84.32,"h":84.49,"l":82.35,"c":82.84},{"x":1736899200000,"o":83.64,"h":85.08,"l":83.04,"c":84.83},{"x":1736985600000,"o":86.1,"h":86.9,"l":84.2,"c":84.24},{"x":1737072000000,"o":85.98,"h":86.5,"l":85.21,"c":85.81},{"x":1737417600000,"o":86.35,"h":91.64,"l":85.47,"c":86.97},{"x":1737504000000,"o":99.8,"h":99.9,"l":95.08,"c":95.4},{"x":1737590400000,"o":95.78,"h":98.5,"l":95.39,"c":98.49},{"x":1737676800000,"o":98.44,"h":98.63,"l":96.77,"c":97.76},{"x":1737936000000,"o":97.11,"h":98.23,"l":96.03,"c":97.19},{"x":1738022400000,"o":96.67,"h":97.79,"l":95.73,"c":97.18},{"x":1738108800000,"o":98.0,"h":98.76,"l":96.82,"c":97.82},{"x":1738195200000,"o":98.68,"h":99.46,"l":97.0,"c":97.32},{"x":1738281600000,"o":97.4,"h":99.03,"l":97.4,"c":97.68},{"x":1738540800000,"o":97.3,"h":98.77,"l":96.44,"c":97.89},{"x":1738627200000,"o":98.05,"h":100.8,"l":97.85,"c":99.49},{"x":1738713600000,"o":98.77,"h":101.18,"l":98.67,"c":101.11},{"x":1738800000000,"o":100.79,"h":101.64,"l":100.26,"c":101.57},{"x":1738886400000,"o":101.7,"h":102.78,"l":100.57,"c":101.39},{"x":1739145600000,"o":102.31,"h":103.29,"l":101.59,"c":102.76},{"x":1739232000000,"o":102.08,"h":102.27,"l":100.29,"c":100.81},{"x":1739318400000,"o":100.55,"h":102.77,"l":99.83,"c":102.73},{"x":1739404800000,"o":102.66,"h":104.6,"l":102.51,"c":104.37},{"x":1739491200000,"o":104.5,"h":106.45,"l":104.17,"c":105.86},{"x":1739836800000,"o":106.0,"h":106.2,"l":102.38,"c":103.58},{"x":1739923200000,"o":103.52,"h":104.5,"l":102.45,"c":104.33},{"x":1740009600000,"o":104.2,"h":104.5,"l":101.56,"c":102.45},{"x":1740096000000,"o":102.94,"h":103.24,"l":99.94,"c":100.32},{"x":1740355200000,"o":100.8,"h":101.52,"l":98.45,"c":98.85},{"x":1740441600000,"o":98.94,"h":99.44,"l":95.5,"c":97.72},{"x":1740528000000,"o":97.76,"h":100.09,"l":97.69,"c":99.01},{"x":1740614400000,"o":99.5,"h":100.07,"l":96.18,"c":96.31},{"x":1740700800000,"o":96.96,"h":98.23,"l":95.82,"c":98.06},{"x":1740960000000,"o":98.3,"h":99.49,"l":96.48,"c":97.37},{"x":1741046400000,"o":97.16,"h":98.63,"l":94.82,"c":97.26},{"x":1741132800000,"o":97.36,"h":99.56,"l":96.95,"c":99.09},{"x":1741219200000,"o":97.3,"h":97.37,"l":89.9,"c":90.64},{"x":1741305600000,"o":89.76,"h":90.49,"l":85.81,"c":89.11},{"x":1741564800000,"o":87.51,"h":88.13,"l":85.45,"c":86.67},{"x":1741651200000,"o":86.74,"h":91.07,"l":86.6,"c":89.51},{"x":1741737600000,"o":91.46,"h":92.72,"l":90.1,"c":91.97},{"x":1741824000000,"o":91.3,"h":92.19,"l":88.75,"c":89.02},{"x":1741910400000,"o":90.15,"h":91.96,"l":90.1,"c":91.8},{"x":1742169600000,"o":94.0,"h":96.76,"l":93.44,"c":95.0},{"x":1742256000000,"o":94.0,"h":94.82,"l":91.63,"c":93.0},{"x":1742342400000,"o":93.58,"h":96.8,"l":92.4,"c":95.95},{"x":1742428800000,"o":95.0,"h":96.7,"l":94.55,"c":95.08},{"x":1742515200000,"o":94.16,"h":96.36,"l":94.1,"c":96.03},{"x":1742774400000,"o":96.97,"h":97.7,"l":95.15,"c":97.2},{"x":1742860800000,"o":97.82,"h":99.87,"l":97.71,"c":99.73},{"x":1742947200000,"o":99.38,"h":99.68,"l":96.63,"c":97.07},{"x":1743033600000,"o":97.42,"h":98.9,"l":96.64,"c":97.67},{"x":1743120000000,"o":97.2,"h":97.5,"l":92.92,"c":93.39},{"x":1743379200000,"o":92.05,"h":93.45,"l":90.06,"c":93.25},{"x":1743465600000,"o":92.75,"h":93.23,"l":91.15,"c":92.84},{"x":1743552000000,"o":92.3,"h":94.96,"l":91.61,"c":93.55},{"x":1743638400000,"o":90.18,"h":94.66,"l":90.05,"c":91.71},{"x":1743724800000,"o":89.65,"h":90.66,"l":85.39,"c":85.59},{"x":1743984000000,"o":82.79,"h":90.67,"l":82.11,"c":86.78},{"x":1744070400000,"o":91.24,"h":92.24,"l":85.77,"c":87.04},{"x":1744156800000,"o":85.59,"h":95.14,"l":85.44,"c":94.55},{"x":1744243200000,"o":93.19,"h":94.12,"l":89.4,"c":92.12},{"x":1744329600000,"o":92.0,"h":94.49,"l":90.67,"c":91.83},{"x":1744588800000,"o":93.27,"h":94.9,"l":91.95,"c":93.13},{"x":1744675200000,"o":95.0,"h":99.35,"l":94.8,"c":97.63},{"x":1744761600000,"o":97.63,"h":98.12,"l":94.92,"c":96.16},{"x":1744848000000,"o":96.9,"h":98.47,"l":95.6,"c":97.3},{"x":1745193600000,"o":98.44,"h":101.9,"l":97.31,"c":98.79},{"x":1745280000000,"o":100.53,"h":106.5,"l":100.45,"c":104.03},{"x":1745366400000,"o":104.72,"h":106.12,"l":103.2,"c":104.96},{"x":1745452800000,"o":104.8,"h":110.1,"l":104.7,"c":109.69},{"x":1745539200000,"o":109.7,"h":110.68,"l":109.1,"c":110.15},{"x":1745798400000,"o":110.0,"h":111.4,"l":108.26,"c":111.04},{"x":1745884800000,"o":110.39,"h":112.78,"l":109.55,"c":112.56},{"x":1745971200000,"o":111.26,"h":113.32,"l":110.11,"c":113.17},{"x":1746057600000,"o":112.25,"h":114.24,"l":111.18,"c":113.35},{"x":1746144000000,"o":113.67,"h":115.94,"l":113.33,"c":115.65},{"x":1746403200000,"o":111.48,"h":114.4,"l":110.7,"c":113.41},{"x":1746489600000,"o":112.94,"h":114.77,"l":112.64,"c":113.77},{"x":1746576000000,"o":113.92,"h":116.4,"l":113.8,"c":115.54},{"x":1746662400000,"o":116.16,"h":116.23,"l":113.92,"c":114.44},{"x":1746748800000,"o":114.71,"h":115.1,"l":113.32,"c":114.02},{"x":1747008000000,"o":112.43,"h":113.0,"l":110.29,"c":111.0},{"x":1747094400000,"o":111.45,"h":114.79,"l":110.63,"c":113.84},{"x":1747180800000,"o":112.96,"h":115.29,"l":112.84,"c":115.1},{"x":1747267200000,"o":114.77,"h":118.78,"l":114.76,"c":117.8},{"x":1747353600000,"o":119.31,"h":119.65,"l":117.94,"c":119.15},{"x":1747612800000,"o":117.36,"h":119.16,"l":117.17,"c":119.16},{"x":1747699200000,"o":118.68,"h":119.3,"l":117.9,"c":119.2},{"x":1747785600000,"o":118.65,"h":121.12,"l":118.65,"c":119.46},{"x":1747872000000,"o":119.24,"h":119.88,"l":118.72,"c":118.8},{"x":1747958400000,"o":118.4,"h":119.14,"l":117.94,"c":118.54},{"x":1748304000000,"o":119.53,"h":121.18,"l":119.31,"c":121.16},{"x":1748390400000,"o":121.03,"h":121.59,"l":120.6,"c":120.86},{"x":1748476800000,"o":120.8,"h":120.9,"l":117.63,"c":118.49},{"x":1748563200000,"o":119.83,"h":121.18,"l":118.09,"c":120.72},{"x":1748822400000,"o":120.12,"h":121.94,"l":119.62,"c":121.9},{"x":1748908800000,"o":121.99,"h":122.96,"l":121.12,"c":121.79},{"x":1748995200000,"o":122.07,"h":124.26,"l":121.99,"c":123.97},{"x":1749081600000,"o":124.06,"h":126.28,"l":123.73,"c":125.05},{"x":1749168000000,"o":125.94,"h":126.0,"l":123.56,"c":124.15},{"x":1749427200000,"o":123.89,"h":123.89,"l":122.16,"c":122.45},{"x":1749513600000,"o":122.75,"h":122.75,"l":118.06,"c":120.36},{"x":1749600000000,"o":120.26,"h":122.83,"l":119.6,"c":121.99},{"x":1749686400000,"o":122.26,"h":123.0,"l":121.2,"c":121.5},{"x":1749772800000,"o":120.66,"h":122.06,"l":120.19,"c":121.21},{"x":1750032000000,"o":121.22,"h":122.62,"l":121.22,"c":122.54},{"x":1750118400000,"o":122.0,"h":123.24,"l":121.61,"c":122.07},{"x":1750204800000,"o":123.0,"h":124.2,"l":122.05,"c":122.23},{"x":1750377600000,"o":123.44,"h":124.85,"l":122.43,"c":123.14},{"x":1750636800000,"o":123.8,"h":125.48,"l":121.5,"c":125.35},{"x":1750723200000,"o":126.06,"h":128.26,"l":125.5,"c":127.91},{"x":1750809600000,"o":128.68,"h":129.8,"l":127.38,"c":127.53},{"x":1750896000000,"o":128.0,"h":130.73,"l":128.0,"c":130.67},{"x":1750982400000,"o":130.69,"h":133.13,"l":130.1,"c":132.31},{"x":1751241600000,"o":133.1,"h":134.12,"l":132.12,"c":133.91},{"x":1751328000000,"o":133.82,"h":133.88,"l":128.22,"c":129.36},{"x":1751414400000,"o":129.7,"h":129.99,"l":127.16,"c":128.49},{"x":1751500800000,"o":129.2,"h":130.23,"l":127.98,"c":129.72},{"x":1751846400000,"o":129.5,"h":129.5,"l":127.6,"c":128.96},{"x":1751932800000,"o":129.09,"h":129.32,"l":126.0,"c":127.53},{"x":1752019200000,"o":127.4,"h":128.83,"l":126.62,"c":128.83},{"x":1752105600000,"o":128.55,"h":128.96,"l":124.6,"c":125.06},{"x":1752192000000,"o":125.98,"h":126.1,"l":123.13,"c":124.51},{"x":1752451200000,"o":124.49,"h":127.05,"l":124.0,"c":126.19},{"x":1752537600000,"o":126.2,"h":127.12,"l":124.32,"c":126.03},{"x":1752624000000,"o":126.17,"h":127.1,"l":124.98,"c":125.03},{"x":1752710400000,"o":125.3,"h":127.75,"l":124.48,"c":127.42},{"x":1752796800000,"o":124.2,"h":124.65,"l":120.1,"c":120.92},{"x":1753056000000,"o":120.6,"h":123.71,"l":119.8,"c":123.33},{"x":1753142400000,"o":123.04,"h":123.24,"l":118.75,"c":119.01},{"x":1753228800000,"o":118.98,"h":119.26,"l":117.36,"c":117.68},{"x":1753315200000,"o":117.78,"h":118.35,"l":116.27,"c":118.08},{"x":1753401600000,"o":117.84,"h":118.73,"l":117.44,"c":118.05},{"x":1753660800000,"o":118.12,"h":119.78,"l":116.85,"c":117.46},{"x":1753747200000,"o":117.9,"h":117.96,"l":116.33,"c":116.87},{"x":1753833600000,"o":116.86,"h":118.49,"l":116.61,"c":118.42},{"x":1753920000000,"o":118.48,"h":119.0,"l":115.77,"c":115.94},{"x":1754006400000,"o":116.3,"h":117.85,"l":115.29,"c":115.86},{"x":1754265600000,"o":116.76,"h":117.7,"l":116.26,"c":117.1},{"x":1754352000000,"o":117.1,"h":117.17,"l":114.47,"c":114.79},{"x":1754438400000,"o":115.35,"h":118.14,"l":115.19,"c":117.85},{"x":1754524800000,"o":118.18,"h":119.12,"l":116.82,"c":118.04},{"x":1754611200000,"o":118.32,"h":121.41,"l":118.04,"c":121.16},{"x":1754870400000,"o":121.4,"h":122.31,"l":120.19,"c":121.83},{"x":1754956800000,"o":122.5,"h":123.2,"l":120.65,"c":122.53},{"x":1755043200000,"o":123.4,"h":123.71,"l":120.3,"c":120.44},{"x":1755129600000,"o":120.99,"h":124.41,"l":120.7,"c":123.06},{"x":1755216000000,"o":123.4,"h":124.69,"l":122.79,"c":123.89},{"x":1755475200000,"o":123.56,"h":125.12,"l":123.54,"c":124.51},{"x":1755561600000,"o":124.02,"h":124.1,"l":119.28,"c":121.42},{"x":1755648000000,"o":121.8,"h":122.3,"l":119.33,"c":121.39},{"x":1755734400000,"o":121.14,"h":122.14,"l":119.76,"c":120.62},{"x":1755820800000,"o":120.89,"h":121.36,"l":119.82,"c":120.46},{"x":1756080000000,"o":120.17,"h":123.38,"l":119.9,"c":121.81},{"x":1756166400000,"o":122.02,"h":123.15,"l":121.22,"c":122.61},{"x":1756252800000,"o":122.36,"h":122.92,"l":121.3,"c":122.35},{"x":1756339200000,"o":122.28,"h":123.79,"l":121.43,"c":123.14},{"x":1756425600000,"o":122.8,"h":122.88,"l":120.11,"c":120.82},{"x":1756771200000,"o":119.7,"h":121.54,"l":118.28,"c":121.41},{"x":1756857600000,"o":120.51,"h":122.7,"l":120.34,"c":122.62},{"x":1756944000000,"o":122.32,"h":125.75,"l":122.31,"c":125.75},{"x":1757030400000,"o":126.0,"h":126.71,"l":123.9,"c":124.38},{"x":1757289600000,"o":124.85,"h":125.2,"l":123.2,"c":124.48},{"x":1757376000000,"o":124.67,"h":126.57,"l":124.67,"c":126.32},{"x":1757462400000,"o":126.4,"h":126.7,"l":124.64,"c":124.77},{"x":1757548800000,"o":125.1,"h":125.35,"l":119.2,"c":120.35},{"x":1757635200000,"o":120.31,"h":121.18,"l":118.24,"c":118.84},{"x":1757894400000,"o":118.84,"h":120.72,"l":117.32,"c":120.23},{"x":1757980800000,"o":120.56,"h":120.9,"l":119.73,"c":120.05},{"x":1758067200000,"o":122.1,"h":123.39,"l":120.66,"c":122.85},{"x":1758153600000,"o":122.08,"h":123.3,"l":120.55,"c":120.78},{"x":1758240000000,"o":121.86,"h":123.0,"l":120.81,"c":122.7},{"x":1758499200000,"o":122.19,"h":122.98,"l":121.42,"c":122.74},{"x":1758585600000,"o":122.73,"h":122.78,"l":120.85,"c":121.85},{"x":1758672000000,"o":121.86,"h":122.15,"l":119.42,"c":120.39},{"x":1758758400000,"o":120.31,"h":121.68,"l":119.15,"c":120.82},{"x":1758844800000,"o":120.54,"h":121.4,"l":120.0,"c":121.06},{"x":1759104000000,"o":120.5,"h":122.45,"l":118.75,"c":120.64},{"x":1759190400000,"o":120.64,"h":120.85,"l":117.8,"c":119.89},{"x":1759276800000,"o":117.55,"h":117.91,"l":116.32,"c":117.09},{"x":1759363200000,"o":116.15,"h":116.33,"l":113.4,"c":116.25},{"x":1759449600000,"o":116.5,"h":116.8,"l":114.32,"c":115.33},{"x":1759708800000,"o":116.04,"h":116.36,"l":114.54,"c":116.33},{"x":1759795200000,"o":117.78,"h":120.14,"l":117.75,"c":119.11},{"x":1759881600000,"o":119.71,"h":121.74,"l":119.2,"c":121.43},{"x":1759968000000,"o":121.43,"h":123.75,"l":121.18,"c":123.11},{"x":1760054400000,"o":122.9,"h":124.7,"l":121.91,"c":122.01},{"x":1760313600000,"o":122.14,"h":123.11,"l":120.68,"c":121.9},{"x":1760400000000,"o":121.47,"h":122.43,"l":120.31,"c":121.54},{"x":1760486400000,"o":121.3,"h":121.96,"l":120.16,"c":120.33},{"x":1760572800000,"o":121.21,"h":121.67,"l":117.6,"c":118.36},{"x":1760659200000,"o":118.36,"h":120.31,"l":117.89,"c":119.94},{"x":1760918400000,"o":120.79,"h":124.78,"l":120.69,"c":123.86},{"x":1761004800000,"o":124.28,"h":124.86,"l":123.18,"c":124.14},{"x":1761091200000,"o":114.29,"h":115.76,"l":111.25,"c":111.64},{"x":1761177600000,"o":112.69,"h":112.78,"l":109.97,"c":111.36},{"x":1761264000000,"o":111.1,"h":111.45,"l":109.44,"c":109.47},{"x":1761523200000,"o":110.07,"h":110.23,"l":108.73,"c":109.46},{"x":1761609600000,"o":109.4,"h":111.7,"l":109.3,"c":110.25},{"x":1761696000000,"o":109.98,"h":110.86,"l":109.6,"c":110.04},{"x":1761782400000,"o":109.44,"h":110.62,"l":108.81,"c":108.9},{"x":1761868800000,"o":110.54,"h":113.49,"l":110.2,"c":111.89},{"x":1762128000000,"o":113.32,"h":113.35,"l":107.51,"c":110.01},{"x":1762214400000,"o":110.0,"h":110.46,"l":108.67,"c":109.3},{"x":1762300800000,"o":108.5,"h":110.08,"l":107.34,"c":109.85},{"x":1762387200000,"o":109.46,"h":110.37,"l":108.51,"c":109.7},{"x":1762473600000,"o":109.42,"h":110.82,"l":108.75,"c":110.37},{"x":1762732800000,"o":110.67,"h":112.82,"l":110.4,"c":112.01},{"x":1762819200000,"o":111.76,"h":113.92,"l":111.28,"c":113.64},{"x":1762905600000,"o":113.82,"h":116.43,"l":112.83,"c":115.75},{"x":1762992000000,"o":115.85,"h":116.73,"l":114.57,"c":115.42},{"x":1763078400000,"o":114.27,"h":114.27,"l":110.72,"c":111.22},{"x":1763337600000,"o":110.75,"h":111.85,"l":109.55,"c":110.29},{"x":1763424000000,"o":110.29,"h":115.25,"l":109.2,"c":114.09},{"x":1763510400000,"o":113.0,"h":113.34,"l":108.61,"c":110.0},{"x":1763596800000,"o":111.0,"h":111.1,"l":105.39,"c":105.67},{"x":1763683200000,"o":105.13,"h":106.53,"l":103.81,"c":104.31},{"x":1763942400000,"o":104.25,"h":108.04,"l":103.32,"c":106.97},{"x":1764028800000,"o":106.12,"h":106.3,"l":103.82,"c":104.4},{"x":1764115200000,"o":105.74,"h":106.95,"l":105.22,"c":106.14},{"x":1764288000000,"o":106.44,"h":107.94,"l":106.24,"c":107.58},{"x":1764547200000,"o":106.51,"h":109.34,"l":106.31,"c":109.13},{"x":1764633600000,"o":109.21,"h":109.73,"l":107.52,"c":109.35},{"x":1764720000000,"o":106.59,"h":106.87,"l":102.03,"c":103.96},{"x":1764806400000,"o":103.57,"h":103.8,"l":101.77,"c":103.22},{"x":1764892800000,"o":98.78,"h":104.79,"l":97.74,"c":100.24},{"x":1765152000000,"o":99.87,"h":99.89,"l":95.3,"c":96.79},{"x":1765238400000,"o":97.03,"h":97.24,"l":95.45,"c":96.71},{"x":1765324800000,"o":96.74,"h":96.97,"l":92.35,"c":92.71},{"x":1765411200000,"o":93.9,"h":94.82,"l":92.76,"c":94.09},{"x":1765497600000,"o":95.5,"h":96.92,"l":94.65,"c":95.19},{"x":1765756800000,"o":96.02,"h":96.37,"l":93.53,"c":93.77},{"x":1765843200000,"o":93.88,"h":94.93,"l":93.32,"c":94.57},{"x":1765929600000,"o":95.98,"h":97.33,"l":94.46,"c":94.79},{"x":1766016000000,"o":95.02,"h":95.81,"l":93.59,"c":94.0},{"x":1766102400000,"o":93.57,"h":95.54,"l":93.45,"c":94.39},{"x":1766361600000,"o":94.71,"h":94.71,"l":92.91,"c":93.23},{"x":1766448000000,"o":93.4,"h":93.81,"l":91.33,"c":93.5},{"x":1766534400000,"o":93.11,"h":93.68,"l":92.67,"c":93.64},{"x":1766707200000,"o":93.48,"h":94.69,"l":93.27,"c":94.47},{"x":1766966400000,"o":93.99,"h":94.97,"l":93.63,"c":94.15},{"x":1767052800000,"o":93.52,"h":93.99,"l":93.34,"c":93.78},{"x":1767139200000,"o":93.6,"h":94.31,"l":93.2,"c":93.76},{"x":1767312000000,"o":94.13,"h":94.13,"l":90.81,"c":90.99},{"x":1767571200000,"o":90.92,"h":92.63,"l":90.84,"c":91.46},{"x":1767657600000,"o":91.54,"h":91.64,"l":89.74,"c":90.65},{"x":1767744000000,"o":91.56,"h":92.42,"l":90.06,"c":90.73},{"x":1767830400000,"o":90.45,"h":91.25,"l":89.58,"c":90.53},{"x":1767916800000,"o":90.03,"h":90.05,"l":88.32,"c":89.46},{"x":1768176000000,"o":89.69,"h":90.34,"l":89.33,"c":89.41},{"x":1768262400000,"o":89.44,"h":91.15,"l":89.07,"c":90.32},{"x":1768348800000,"o":91.24,"h":91.58,"l":87.95,"c":88.55},{"x":1768435200000,"o":89.02,"h":89.89,"l":87.82,"c":88.05},{"x":1768521600000,"o":88.34,"h":88.51,"l":87.78,"c":88.0},{"x":1768867200000,"o":88.97,"h":89.9,"l":87.02,"c":87.26},{"x":1768953600000,"o":82.52,"h":86.0,"l":81.93,"c":85.36},{"x":1769040000000,"o":85.02,"h":85.1,"l":82.98,"c":83.54},{"x":1769126400000,"o":83.43,"h":86.3,"l":83.28,"c":86.12},{"x":1769385600000,"o":86.92,"h":86.94,"l":85.35,"c":85.7},{"x":1769472000000,"o":85.28,"h":85.6,"l":83.88,"c":85.58},{"x":1769558400000,"o":85.63,"h":86.47,"l":84.3,"c":84.64},{"x":1769644800000,"o":84.31,"h":84.38,"l":82.35,"c":83.16},{"x":1769731200000,"o":83.1,"h":84.06,"l":82.78,"c":83.49},{"x":1769990400000,"o":83.53,"h":85.27,"l":82.72,"c":82.76},{"x":1770076800000,"o":82.23,"h":82.45,"l":79.62,"c":79.94},{"x":1770163200000,"o":79.99,"h":81.44,"l":79.23,"c":80.16},{"x":1770249600000,"o":81.49,"h":83.3,"l":80.54,"c":80.87},{"x":1770336000000,"o":81.02,"h":82.49,"l":80.65,"c":82.2},{"x":1770595200000,"o":82.18,"h":82.21,"l":79.87,"c":81.47},{"x":1770681600000,"o":82.72,"h":84.66,"l":82.09,"c":82.21},{"x":1770768000000,"o":81.96,"h":82.48,"l":79.45,"c":79.62},{"x":1770854400000,"o":79.11,"h":79.15,"l":75.23,"c":75.86},{"x":1770940800000,"o":76.14,"h":77.18,"l":75.53,"c":76.87},{"x":1771286400000,"o":76.92,"h":77.87,"l":75.3,"c":77.0},{"x":1771372800000,"o":77.32,"h":78.32,"l":76.28,"c":77.99},{"x":1771459200000,"o":77.75,"h":78.7,"l":76.59,"c":77.0},{"x":1771545600000,"o":76.61,"h":78.85,"l":76.4,"c":78.67},{"x":1771804800000,"o":77.79,"h":77.83,"l":75.01,"c":76.02},{"x":1771891200000,"o":75.73,"h":78.12,"l":75.21,"c":78.04},{"x":1771977600000,"o":79.43,"h":83.12,"l":79.25,"c":82.7},{"x":1772064000000,"o":83.2,"h":86.5,"l":82.8,"c":84.59},{"x":1772150400000,"o":94.3,"h":96.75,"l":90.58,"c":96.24},{"x":1772409600000,"o":95.26,"h":98.07,"l":95.2,"c":97.09},{"x":1772496000000,"o":96.01,"h":98.46,"l":95.33,"c":97.7},{"x":1772582400000,"o":97.11,"h":99.75,"l":96.99,"c":98.66},{"x":1772668800000,"o":98.5,"h":100.19,"l":98.1,"c":99.17},{"x":1772755200000,"o":99.33,"h":99.88,"l":97.4,"c":99.02},{"x":1773014400000,"o":97.7,"h":98.94,"l":96.58,"c":98.32},{"x":1773100800000,"o":97.81,"h":98.49,"l":96.29,"c":96.94},{"x":1773187200000,"o":97.41,"h":98.0,"l":94.69,"c":94.89},{"x":1773273600000,"o":94.86,"h":95.4,"l":93.87,"c":94.31},{"x":1773360000000,"o":94.64,"h":95.68,"l":94.24,"c":95.31},{"x":1773619200000,"o":95.58,"h":96.1,"l":94.36,"c":95.2},{"x":1773705600000,"o":95.3,"h":96.34,"l":94.01,"c":94.36},{"x":1773792000000,"o":94.45,"h":95.34,"l":93.61,"c":94.7},{"x":1773878400000,"o":94.31,"h":95.75,"l":90.78,"c":91.74},{"x":1773964800000,"o":91.31,"h":91.88,"l":90.69,"c":91.82},{"x":1774224000000,"o":92.04,"h":93.98,"l":91.86,"c":93.38},{"x":1774310400000,"o":92.79,"h":93.74,"l":90.82,"c":90.92},{"x":1774396800000,"o":91.71,"h":92.52,"l":91.24,"c":92.28},{"x":1774483200000,"o":91.52,"h":95.86,"l":91.01,"c":93.32},{"x":1774569600000,"o":94.57,"h":95.58,"l":92.74,"c":93.43},{"x":1774828800000,"o":92.75,"h":94.49,"l":92.22,"c":92.97},{"x":1774915200000,"o":93.03,"h":96.26,"l":93.03,"c":96.15},{"x":1775001600000,"o":96.47,"h":97.2,"l":94.26,"c":95.55},{"x":1775088000000,"o":95.27,"h":98.71,"l":95.17,"c":98.66},{"x":1775433600000,"o":100.96,"h":102.69,"l":97.97,"c":98.93},{"x":1775520000000,"o":98.55,"h":99.88,"l":98.25,"c":98.82},{"x":1775606400000,"o":100.32,"h":100.4,"l":97.44,"c":99.39},{"x":1775692800000,"o":99.63,"h":102.34,"l":99.08,"c":102.05},{"x":1775779200000,"o":102.47,"h":103.08,"l":101.46,"c":103.01},{"x":1776038400000,"o":103.03,"h":103.67,"l":102.06,"c":103.16},{"x":1776124800000,"o":103.12,"h":106.57,"l":103.04,"c":106.28},{"x":1776211200000,"o":105.98,"h":107.85,"l":105.04,"c":107.71},{"x":1776297600000,"o":107.47,"h":108.95,"l":106.62,"c":107.79},{"x":1776384000000,"o":96.37,"h":98.74,"l":95.1,"c":97.31},{"x":1776643200000,"o":97.14,"h":97.6,"l":93.54,"c":94.83},{"x":1776729600000,"o":94.0,"h":94.65,"l":92.37,"c":92.58},{"x":1776816000000,"o":93.06,"h":93.85,"l":92.77,"c":93.24},{"x":1776902400000,"o":94.06,"h":94.64,"l":92.07,"c":92.82},{"x":1776988800000,"o":92.57,"h":93.28,"l":91.8,"c":92.44},{"x":1777248000000,"o":92.05,"h":92.84,"l":91.3,"c":91.37},{"x":1777334400000,"o":91.5,"h":92.34,"l":90.02,"c":92.27},{"x":1777420800000,"o":91.23,"h":92.86,"l":90.86,"c":92.12},{"x":1777507200000,"o":91.35,"h":94.22,"l":90.77,"c":93.61},{"x":1777593600000,"o":94.42,"h":94.7,"l":91.9,"c":92.06},{"x":1777852800000,"o":92.1,"h":92.33,"l":90.89,"c":91.02},{"x":1777939200000,"o":91.18,"h":91.28,"l":87.57,"c":87.89},{"x":1778025600000,"o":87.15,"h":88.55,"l":86.72,"c":88.27},{"x":1778112000000,"o":88.2,"h":89.4,"l":88.13,"c":88.25},{"x":1778198400000,"o":87.71,"h":88.04,"l":87.21,"c":87.49},{"x":1778457600000,"o":86.53,"h":87.34,"l":85.1,"c":85.45},{"x":1778544000000,"o":85.91,"h":89.17,"l":85.81,"c":87.66},{"x":1778630400000,"o":86.57,"h":88.62,"l":86.28,"c":87.56},{"x":1778716800000,"o":87.62,"h":88.5,"l":86.65,"c":86.94},{"x":1778803200000,"o":87.69,"h":89.49,"l":86.69,"c":87.02},{"x":1779062400000,"o":86.5,"h":89.82,"l":86.33,"c":89.65},{"x":1779148800000,"o":90.14,"h":91.48,"l":88.69,"c":89.33},{"x":1779235200000,"o":88.52,"h":88.55,"l":87.5,"c":88.09},{"x":1779321600000,"o":88.03,"h":90.37,"l":87.52,"c":89.3},{"x":1779408000000,"o":89.1,"h":89.97,"l":88.17,"c":88.6},{"x":1779753600000,"o":88.4,"h":88.73,"l":87.25,"c":87.68},{"x":1779840000000,"o":87.05,"h":88.5,"l":86.82,"c":87.35},{"x":1779926400000,"o":86.9,"h":87.04,"l":85.59,"c":86.36},{"x":1780012800000,"o":86.2,"h":86.67,"l":85.66,"c":86.02},{"x":1780272000000,"o":85.73,"h":87.23,"l":85.32,"c":85.85},{"x":1780358400000,"o":85.61,"h":85.98,"l":83.29,"c":83.33},{"x":1780444800000,"o":82.91,"h":83.31,"l":81.1,"c":81.52},{"x":1780531200000,"o":83.19,"h":83.7,"l":81.37,"c":81.56},{"x":1780617600000,"o":82.33,"h":82.75,"l":81.0,"c":82.18},{"x":1780876800000,"o":81.66,"h":83.08,"l":81.34,"c":82.64},{"x":1780963200000,"o":82.13,"h":82.34,"l":81.34,"c":81.41},{"x":1781049600000,"o":81.71,"h":82.75,"l":80.98,"c":82.0},{"x":1781136000000,"o":81.87,"h":82.1,"l":80.09,"c":81.27},{"x":1781222400000,"o":81.58,"h":82.0,"l":79.28,"c":80.34},{"x":1781481600000,"o":80.62,"h":81.71,"l":80.46,"c":81.67},{"x":1781568000000,"o":81.9,"h":81.93,"l":77.71,"c":78.72},{"x":1781654400000,"o":78.1,"h":78.45,"l":76.76,"c":76.96},{"x":1781740800000,"o":76.93,"h":78.24,"l":76.12,"c":77.38},{"x":1782086400000,"o":76.14,"h":77.09,"l":71.81,"c":72.88},{"x":1782172800000,"o":73.26,"h":73.96,"l":72.63,"c":72.82},{"x":1782259200000,"o":72.69,"h":73.45,"l":71.63,"c":71.84},{"x":1782345600000,"o":71.33,"h":72.94,"l":70.86,"c":70.9},{"x":1782432000000,"o":71.69,"h":75.2,"l":71.53,"c":73.81},{"x":1782691200000,"o":74.62,"h":76.07,"l":73.73,"c":73.78},{"x":1782777600000,"o":73.59,"h":73.75,"l":71.0,"c":71.4},{"x":1782864000000,"o":72.59,"h":74.36,"l":72.33,"c":74.19},{"x":1782950400000,"o":75.09,"h":78.44,"l":74.91,"c":77.65},{"x":1783296000000,"o":77.08,"h":77.84,"l":75.71,"c":76.02},{"x":1783382400000,"o":77.88,"h":78.19,"l":76.1,"c":76.18},{"x":1783468800000,"o":76.27,"h":76.64,"l":74.89,"c":75.59},{"x":1783555200000,"o":74.3,"h":75.55,"l":74.02,"c":75.47},{"x":1783641600000,"o":75.44,"h":75.7,"l":72.51,"c":73.37},{"x":1783900800000,"o":73.9,"h":75.45,"l":73.71,"c":73.83},{"x":1783987200000,"o":72.64,"h":74.01,"l":72.28,"c":73.53},{"x":1784073600000,"o":73.79,"h":75.06,"l":73.13,"c":73.68},{"x":1784160000000,"o":73.95,"h":74.68,"l":72.94,"c":74.35},{"x":1784246400000,"o":65.48,"h":69.49,"l":65.08,"c":68.95},{"x":1784505600000,"o":68.32,"h":68.38,"l":66.69,"c":67.6},{"x":1784592000000,"o":67.42,"h":68.75,"l":66.73,"c":68.67},{"x":1784678400000,"o":69.37,"h":70.57,"l":68.35,"c":68.53},{"x":1784764800000,"o":68.57,"h":69.36,"l":67.67,"c":68.89},{"x":1784851200000,"o":69.29,"h":70.68,"l":67.97,"c":70.09},{"x":1785110400000,"o":70.59,"h":71.65,"l":69.86,"c":70.4},{"x":1785196800000,"o":72.07,"h":73.76,"l":71.23,"c":72.39},{"x":1785283200000,"o":72.19,"h":73.74,"l":71.75,"c":73.63},{"x":1785369600000,"o":71.48,"h":73.32,"l":70.55,"c":73.17},{"x":1785456000000,"o":71.97,"h":72.75,"l":71.11,"c":71.71},{"x":1785715200000,"o":72.77,"h":73.95,"l":72.18,"c":73.33},{"x":1785801600000,"o":72.51,"h":73.75,"l":72.3,"c":73.57},{"x":1785888000000,"o":75.11,"h":75.3,"l":73.16,"c":74.2},{"x":1785974400000,"o":75.14,"h":75.21,"l":73.1,"c":73.69},{"x":1786060800000,"o":73.12,"h":74.5,"l":73.08,"c":74.14},{"x":1786320000000,"o":73.8,"h":76.32,"l":73.57,"c":76.29},{"x":1786406400000,"o":76.2,"h":76.9,"l":74.48,"c":74.79},{"x":1786492800000,"o":74.35,"h":74.67,"l":73.57,"c":74.21},{"x":1786579200000,"o":76.01,"h":78.4,"l":75.44,"c":78.24},{"x":1786665600000,"o":78.48,"h":78.73,"l":77.76,"c":78.16},{"x":1786924800000,"o":77.8,"h":78.53,"l":75.47,"c":76.02},{"x":1787011200000,"o":77.43,"h":79.1,"l":76.34,"c":77.77},{"x":1787097600000,"o":78.25,"h":81.16,"l":78.1,"c":80.22},{"x":1787184000000,"o":80.14,"h":81.08,"l":79.59,"c":80.14},{"x":1787270400000,"o":80.29,"h":80.49,"l":79.17,"c":79.59},{"x":1787529600000,"o":79.94,"h":80.62,"l":79.02,"c":80.01},{"x":1787616000000,"o":79.65,"h":82.46,"l":79.4,"c":82.23},{"x":1787702400000,"o":82.05,"h":82.42,"l":81.3,"c":81.46},{"x":1787788800000,"o":81.07,"h":81.15,"l":79.28,"c":79.84},{"x":1787875200000,"o":80.36,"h":82.35,"l":79.95,"c":81.72},{"x":1788134400000,"o":81.0,"h":81.73,"l":80.65,"c":81.05},{"x":1788220800000,"o":80.17,"h":82.13,"l":79.6,"c":80.81},{"x":1788307200000,"o":80.55,"h":83.12,"l":80.3,"c":82.73},{"x":1788393600000,"o":83.18,"h":83.6,"l":81.63,"c":82.67},{"x":1788480000000,"o":82.17,"h":82.69,"l":78.23,"c":78.25},{"x":1788825600000,"o":77.55,"h":77.73,"l":75.92,"c":76.77},{"x":1788912000000,"o":76.34,"h":76.72,"l":75.87,"c":76.03},{"x":1788998400000,"o":75.33,"h":76.3,"l":75.03,"c":76.01},{"x":1789084800000,"o":76.64,"h":77.57,"l":76.15,"c":77.4},{"x":1789344000000,"o":78.97,"h":81.02,"l":78.49,"c":80.32},{"x":1789430400000,"o":79.38,"h":79.48,"l":77.46,"c":77.9},{"x":1789516800000,"o":77.73,"h":77.8,"l":76.31,"c":76.41},{"x":1789603200000,"o":76.9,"h":76.92,"l":75.37,"c":75.43}];
+const volumeData = [{"x":1726531200000,"y":22986000},{"x":1726617600000,"y":29844000},{"x":1726704000000,"y":42285000},{"x":1726790400000,"y":39981000},{"x":1727049600000,"y":32243000},{"x":1727136000000,"y":35657000},{"x":1727222400000,"y":22598000},{"x":1727308800000,"y":28330000},{"x":1727395200000,"y":23956000},{"x":1727654400000,"y":17099000},{"x":1727740800000,"y":28135000},{"x":1727827200000,"y":17582000},{"x":1727913600000,"y":22564000},{"x":1728000000000,"y":22290000},{"x":1728259200000,"y":33605000},{"x":1728345600000,"y":31874000},{"x":1728432000000,"y":19811000},{"x":1728518400000,"y":27679000},{"x":1728604800000,"y":22995000},{"x":1728864000000,"y":27971000},{"x":1728950400000,"y":29328000},{"x":1729036800000,"y":24943000},{"x":1729123200000,"y":89267000},{"x":1729209600000,"y":159741000},{"x":1729468800000,"y":60571000},{"x":1729555200000,"y":29873000},{"x":1729641600000,"y":37490000},{"x":1729728000000,"y":26430000},{"x":1729814400000,"y":28195000},{"x":1730073600000,"y":28624000},{"x":1730160000000,"y":36604000},{"x":1730246400000,"y":17220000},{"x":1730332800000,"y":30577000},{"x":1730419200000,"y":29968000},{"x":1730678400000,"y":19022000},{"x":1730764800000,"y":22006000},{"x":1730851200000,"y":36908000},{"x":1730937600000,"y":32951000},{"x":1731024000000,"y":19106000},{"x":1731283200000,"y":23992000},{"x":1731369600000,"y":28141000},{"x":1731456000000,"y":27678000},{"x":1731542400000,"y":30382000},{"x":1731628800000,"y":36737000},{"x":1731888000000,"y":40812000},{"x":1731974400000,"y":38142000},{"x":1732060800000,"y":40938000},{"x":1732147200000,"y":45113000},{"x":1732233600000,"y":32140000},{"x":1732492800000,"y":60142000},{"x":1732579200000,"y":31383000},{"x":1732665600000,"y":25782000},{"x":1732838400000,"y":20272000},{"x":1733097600000,"y":23890000},{"x":1733184000000,"y":24016000},{"x":1733270400000,"y":26896000},{"x":1733356800000,"y":28353000},{"x":1733443200000,"y":29554000},{"x":1733702400000,"y":33501000},{"x":1733788800000,"y":23886000},{"x":1733875200000,"y":35017000},{"x":1733961600000,"y":24862000},{"x":1734048000000,"y":24858000},{"x":1734307200000,"y":26749000},{"x":1734393600000,"y":24595000},{"x":1734480000000,"y":29382000},{"x":1734566400000,"y":28155000},{"x":1734652800000,"y":45305000},{"x":1734912000000,"y":23394000},{"x":1734998400000,"y":23203000},{"x":1735171200000,"y":23403000},{"x":1735257600000,"y":32262000},{"x":1735516800000,"y":22030000},{"x":1735603200000,"y":18759000},{"x":1735776000000,"y":23123000},{"x":1735862400000,"y":29673000},{"x":1736121600000,"y":34577000},{"x":1736208000000,"y":26498000},{"x":1736294400000,"y":23479000},{"x":1736467200000,"y":48033000},{"x":1736726400000,"y":30245000},{"x":1736812800000,"y":30377000},{"x":1736899200000,"y":31814000},{"x":1736985600000,"y":40285000},{"x":1737072000000,"y":36176000},{"x":1737417600000,"y":98514000},{"x":1737504000000,"y":142732000},{"x":1737590400000,"y":77521000},{"x":1737676800000,"y":45504000},{"x":1737936000000,"y":46342000},{"x":1738022400000,"y":34340000},{"x":1738108800000,"y":29307000},{"x":1738195200000,"y":38678000},{"x":1738281600000,"y":36151000},{"x":1738540800000,"y":37242000},{"x":1738627200000,"y":60001000},{"x":1738713600000,"y":39934000},{"x":1738800000000,"y":31343000},{"x":1738886400000,"y":32129000},{"x":1739145600000,"y":32966000},{"x":1739232000000,"y":33318000},{"x":1739318400000,"y":33890000},{"x":1739404800000,"y":34761000},{"x":1739491200000,"y":31454000},{"x":1739836800000,"y":42293000},{"x":1739923200000,"y":26000000},{"x":1740009600000,"y":31118000},{"x":1740096000000,"y":37387000},{"x":1740355200000,"y":44262000},{"x":1740441600000,"y":47383000},{"x":1740528000000,"y":33972000},{"x":1740614400000,"y":37666000},{"x":1740700800000,"y":47174000},{"x":1740960000000,"y":39074000},{"x":1741046400000,"y":43928000},{"x":1741132800000,"y":38079000},{"x":1741219200000,"y":78526000},{"x":1741305600000,"y":77375000},{"x":1741564800000,"y":69953000},{"x":1741651200000,"y":73989000},{"x":1741737600000,"y":68658000},{"x":1741824000000,"y":50017000},{"x":1741910400000,"y":52007000},{"x":1742169600000,"y":75431000},{"x":1742256000000,"y":60094000},{"x":1742342400000,"y":66624000},{"x":1742428800000,"y":44663000},{"x":1742515200000,"y":59054000},{"x":1742774400000,"y":46779000},{"x":1742860800000,"y":37822000},{"x":1742947200000,"y":35274000},{"x":1743033600000,"y":30472000},{"x":1743120000000,"y":44227000},{"x":1743379200000,"y":46341000},{"x":1743465600000,"y":35200000},{"x":1743552000000,"y":32569000},{"x":1743638400000,"y":58646000},{"x":1743724800000,"y":67988000},{"x":1743984000000,"y":66568000},{"x":1744070400000,"y":56254000},{"x":1744156800000,"y":74980000},{"x":1744243200000,"y":51298000},{"x":1744329600000,"y":40736000},{"x":1744588800000,"y":40359000},{"x":1744675200000,"y":77120000},{"x":1744761600000,"y":60661000},{"x":1744848000000,"y":88937000},{"x":1745193600000,"y":97757000},{"x":1745280000000,"y":93689000},{"x":1745366400000,"y":64719000},{"x":1745452800000,"y":63819000},{"x":1745539200000,"y":39500000},{"x":1745798400000,"y":38311000},{"x":1745884800000,"y":37773000},{"x":1745971200000,"y":42667000},{"x":1746057600000,"y":34995000},{"x":1746144000000,"y":37743000},{"x":1746403200000,"y":56623000},{"x":1746489600000,"y":32567000},{"x":1746576000000,"y":43497000},{"x":1746662400000,"y":37609000},{"x":1746748800000,"y":25696000},{"x":1747008000000,"y":64791000},{"x":1747094400000,"y":39979000},{"x":1747180800000,"y":39101000},{"x":1747267200000,"y":44640000},{"x":1747353600000,"y":46984000},{"x":1747612800000,"y":28534000},{"x":1747699200000,"y":21331000},{"x":1747785600000,"y":29766000},{"x":1747872000000,"y":18616000},{"x":1747958400000,"y":21865000},{"x":1748304000000,"y":29205000},{"x":1748390400000,"y":18559000},{"x":1748476800000,"y":33007000},{"x":1748563200000,"y":46968000},{"x":1748822400000,"y":22942000},{"x":1748908800000,"y":23638000},{"x":1748995200000,"y":23594000},{"x":1749081600000,"y":28172000},{"x":1749168000000,"y":25570000},{"x":1749427200000,"y":24031000},{"x":1749513600000,"y":44544000},{"x":1749600000000,"y":23823000},{"x":1749686400000,"y":20846000},{"x":1749772800000,"y":22103000},{"x":1750032000000,"y":21128000},{"x":1750118400000,"y":18921000},{"x":1750204800000,"y":22810000},{"x":1750377600000,"y":53482000},{"x":1750636800000,"y":26673000},{"x":1750723200000,"y":26633000},{"x":1750809600000,"y":21465000},{"x":1750896000000,"y":26059000},{"x":1750982400000,"y":40709000},{"x":1751241600000,"y":32829000},{"x":1751328000000,"y":49936000},{"x":1751414400000,"y":30488000},{"x":1751500800000,"y":20062000},{"x":1751846400000,"y":22737000},{"x":1751932800000,"y":32925000},{"x":1752019200000,"y":23845000},{"x":1752105600000,"y":42308000},{"x":1752192000000,"y":39572000},{"x":1752451200000,"y":27810000},{"x":1752537600000,"y":28017000},{"x":1752624000000,"y":32270000},{"x":1752710400000,"y":64699000},{"x":1752796800000,"y":106933000},{"x":1753056000000,"y":56276000},{"x":1753142400000,"y":50630000},{"x":1753228800000,"y":45043000},{"x":1753315200000,"y":38456000},{"x":1753401600000,"y":26293000},{"x":1753660800000,"y":34470000},{"x":1753747200000,"y":27525000},{"x":1753833600000,"y":29227000},{"x":1753920000000,"y":37129000},{"x":1754006400000,"y":38910000},{"x":1754265600000,"y":22447000},{"x":1754352000000,"y":26607000},{"x":1754438400000,"y":33622000},{"x":1754524800000,"y":26283000},{"x":1754611200000,"y":38167000},{"x":1754870400000,"y":24556000},{"x":1754956800000,"y":22788000},{"x":1755043200000,"y":27624000},{"x":1755129600000,"y":39047000},{"x":1755216000000,"y":27678000},{"x":1755475200000,"y":21111000},{"x":1755561600000,"y":37077000},{"x":1755648000000,"y":24344000},{"x":1755734400000,"y":20472000},{"x":1755820800000,"y":31281000},{"x":1756080000000,"y":28120000},{"x":1756166400000,"y":19857000},{"x":1756252800000,"y":16645000},{"x":1756339200000,"y":19503000},{"x":1756425600000,"y":32098000},{"x":1756771200000,"y":23033000},{"x":1756857600000,"y":24715000},{"x":1756944000000,"y":30235000},{"x":1757030400000,"y":23797000},{"x":1757289600000,"y":19151000},{"x":1757376000000,"y":22197000},{"x":1757462400000,"y":27010000},{"x":1757548800000,"y":56823000},{"x":1757635200000,"y":37849000},{"x":1757894400000,"y":29093000},{"x":1757980800000,"y":24047000},{"x":1758067200000,"y":34598000},{"x":1758153600000,"y":31691000},{"x":1758240000000,"y":49476000},{"x":1758499200000,"y":25468000},{"x":1758585600000,"y":24991000},{"x":1758672000000,"y":27731000},{"x":1758758400000,"y":19978000},{"x":1758844800000,"y":19450000},{"x":1759104000000,"y":30332000},{"x":1759190400000,"y":38303000},{"x":1759276800000,"y":41102000},{"x":1759363200000,"y":46855000},{"x":1759449600000,"y":31374000},{"x":1759708800000,"y":29686000},{"x":1759795200000,"y":33091000},{"x":1759881600000,"y":28514000},{"x":1759968000000,"y":28241000},{"x":1760054400000,"y":42798000},{"x":1760313600000,"y":24608000},{"x":1760400000000,"y":23624000},{"x":1760486400000,"y":20252000},{"x":1760572800000,"y":28326000},{"x":1760659200000,"y":29571000},{"x":1760918400000,"y":39862000},{"x":1761004800000,"y":65082000},{"x":1761091200000,"y":147890000},{"x":1761177600000,"y":68497000},{"x":1761264000000,"y":60280000},{"x":1761523200000,"y":46911000},{"x":1761609600000,"y":40209000},{"x":1761696000000,"y":33995000},{"x":1761782400000,"y":41581000},{"x":1761868800000,"y":68665000},{"x":1762128000000,"y":58634000},{"x":1762214400000,"y":38718000},{"x":1762300800000,"y":35539000},{"x":1762387200000,"y":36532000},{"x":1762473600000,"y":44125000},{"x":1762732800000,"y":36929000},{"x":1762819200000,"y":27966000},{"x":1762905600000,"y":39221000},{"x":1762992000000,"y":40144000},{"x":1763078400000,"y":47607000},{"x":1763337600000,"y":26082700},{"x":1763424000000,"y":43440600},{"x":1763510400000,"y":31868100},{"x":1763596800000,"y":36918500},{"x":1763683200000,"y":41232700},{"x":1763942400000,"y":62918300},{"x":1764028800000,"y":35122600},{"x":1764115200000,"y":27951000},{"x":1764288000000,"y":15021600},{"x":1764547200000,"y":24873400},{"x":1764633600000,"y":25763000},{"x":1764720000000,"y":53593400},{"x":1764806400000,"y":51779100},{"x":1764892800000,"y":133363600},{"x":1765152000000,"y":100906300},{"x":1765238400000,"y":51745600},{"x":1765324800000,"y":74129300},{"x":1765411200000,"y":43949000},{"x":1765497600000,"y":49323100},{"x":1765756800000,"y":40016500},{"x":1765843200000,"y":34265000},{"x":1765929600000,"y":50472800},{"x":1766016000000,"y":37244700},{"x":1766102400000,"y":78990200},{"x":1766361600000,"y":39484800},{"x":1766448000000,"y":25896200},{"x":1766534400000,"y":12427900},{"x":1766707200000,"y":22068300},{"x":1766966400000,"y":24493700},{"x":1767052800000,"y":23422000},{"x":1767139200000,"y":23495200},{"x":1767312000000,"y":41155400},{"x":1767571200000,"y":39183300},{"x":1767657600000,"y":43331000},{"x":1767744000000,"y":36525700},{"x":1767830400000,"y":40068700},{"x":1767916800000,"y":55579500},{"x":1768176000000,"y":36290600},{"x":1768262400000,"y":45221100},{"x":1768348800000,"y":49737700},{"x":1768435200000,"y":36945100},{"x":1768521600000,"y":48130500},{"x":1768867200000,"y":109729700},{"x":1768953600000,"y":127940700},{"x":1769040000000,"y":69113300},{"x":1769126400000,"y":64520400},{"x":1769385600000,"y":40941900},{"x":1769472000000,"y":37790800},{"x":1769558400000,"y":37762600},{"x":1769644800000,"y":42278100},{"x":1769731200000,"y":45755000},{"x":1769990400000,"y":41445300},{"x":1770076800000,"y":49789000},{"x":1770163200000,"y":48963200},{"x":1770249600000,"y":54805700},{"x":1770336000000,"y":46154100},{"x":1770595200000,"y":42200200},{"x":1770681600000,"y":43595800},{"x":1770768000000,"y":40840300},{"x":1770854400000,"y":73516100},{"x":1770940800000,"y":42292100},{"x":1771286400000,"y":35961500},{"x":1771372800000,"y":29883100},{"x":1771459200000,"y":30139200},{"x":1771545600000,"y":32411300},{"x":1771804800000,"y":38363000},{"x":1771891200000,"y":33079100},{"x":1771977600000,"y":69319300},{"x":1772064000000,"y":85642500},{"x":1772150400000,"y":200767000},{"x":1772409600000,"y":79915400},{"x":1772496000000,"y":59149000},{"x":1772582400000,"y":52604300},{"x":1772668800000,"y":53403000},{"x":1772755200000,"y":41196300},{"x":1773014400000,"y":48589000},{"x":1773100800000,"y":41027200},{"x":1773187200000,"y":33962900},{"x":1773273600000,"y":34206900},{"x":1773360000000,"y":29876700},{"x":1773619200000,"y":34931800},{"x":1773705600000,"y":26434500},{"x":1773792000000,"y":27878300},{"x":1773878400000,"y":40169300},{"x":1773964800000,"y":61678000},{"x":1774224000000,"y":34315900},{"x":1774310400000,"y":28938000},{"x":1774396800000,"y":29545600},{"x":1774483200000,"y":59522000},{"x":1774569600000,"y":44590700},{"x":1774828800000,"y":32375100},{"x":1774915200000,"y":54270000},{"x":1775001600000,"y":30439300},{"x":1775088000000,"y":37068000},{"x":1775433600000,"y":37029300},{"x":1775520000000,"y":25016700},{"x":1775606400000,"y":30957600},{"x":1775692800000,"y":35087800},{"x":1775779200000,"y":25769900},{"x":1776038400000,"y":26042800},{"x":1776124800000,"y":40534900},{"x":1776211200000,"y":38023700},{"x":1776297600000,"y":64928300},{"x":1776384000000,"y":125958700},{"x":1776643200000,"y":63298300},{"x":1776729600000,"y":61962300},{"x":1776816000000,"y":33694300},{"x":1776902400000,"y":36851700},{"x":1776988800000,"y":32553200},{"x":1777248000000,"y":29707400},{"x":1777334400000,"y":33418100},{"x":1777420800000,"y":26122100},{"x":1777507200000,"y":40923000},{"x":1777593600000,"y":30406900},{"x":1777852800000,"y":25928800},{"x":1777939200000,"y":51961300},{"x":1778025600000,"y":41932400},{"x":1778112000000,"y":30627600},{"x":1778198400000,"y":36215100},{"x":1778457600000,"y":40556500},{"x":1778544000000,"y":43556600},{"x":1778630400000,"y":30823500},{"x":1778716800000,"y":29408300},{"x":1778803200000,"y":32335700},{"x":1779062400000,"y":35800500},{"x":1779148800000,"y":34545700},{"x":1779235200000,"y":23463400},{"x":1779321600000,"y":28613900},{"x":1779408000000,"y":23847200},{"x":1779753600000,"y":24014500},{"x":1779840000000,"y":22569500},{"x":1779926400000,"y":38803800},{"x":1780012800000,"y":39793600},{"x":1780272000000,"y":32747200},{"x":1780358400000,"y":42947200},{"x":1780444800000,"y":36714700},{"x":1780531200000,"y":39338800},{"x":1780617600000,"y":43474100},{"x":1780876800000,"y":33056700},{"x":1780963200000,"y":34787200},{"x":1781049600000,"y":36304600},{"x":1781136000000,"y":33417600},{"x":1781222400000,"y":35309700},{"x":1781481600000,"y":36430800},{"x":1781568000000,"y":65054000},{"x":1781654400000,"y":50338800},{"x":1781740800000,"y":91920400},{"x":1782086400000,"y":82203300},{"x":1782172800000,"y":50806800},{"x":1782259200000,"y":48001500},{"x":1782345600000,"y":44446900},{"x":1782432000000,"y":74990300},{"x":1782691200000,"y":42429600},{"x":1782777600000,"y":49240900},{"x":1782864000000,"y":43841800},{"x":1782950400000,"y":55456500},{"x":1783296000000,"y":45056600},{"x":1783382400000,"y":33257300},{"x":1783468800000,"y":34373500},{"x":1783555200000,"y":36305700},{"x":1783641600000,"y":46713900},{"x":1783900800000,"y":35101800},{"x":1783987200000,"y":33312100},{"x":1784073600000,"y":32854300},{"x":1784160000000,"y":77505200},{"x":1784246400000,"y":142029200},{"x":1784505600000,"y":60669100},{"x":1784592000000,"y":56565800},{"x":1784678400000,"y":44947300},{"x":1784764800000,"y":45029100},{"x":1784851200000,"y":37593500},{"x":1785110400000,"y":39090800},{"x":1785196800000,"y":47160200},{"x":1785283200000,"y":43737600},{"x":1785369600000,"y":54261000},{"x":1785456000000,"y":35847500},{"x":1785715200000,"y":33922300},{"x":1785801600000,"y":42877900},{"x":1785888000000,"y":28969400},{"x":1785974400000,"y":28892700},{"x":1786060800000,"y":24819000},{"x":1786320000000,"y":26959900},{"x":1786406400000,"y":27840500},{"x":1786492800000,"y":20773100},{"x":1786579200000,"y":41452900},{"x":1786665600000,"y":26751000},{"x":1786924800000,"y":30753000},{"x":1787011200000,"y":36151300},{"x":1787097600000,"y":31461800},{"x":1787184000000,"y":27118400},{"x":1787270400000,"y":23773800},{"x":1787529600000,"y":21085300},{"x":1787616000000,"y":29462000},{"x":1787702400000,"y":22874900},{"x":1787788800000,"y":27174400},{"x":1787875200000,"y":29092700},{"x":1788134400000,"y":30740800},{"x":1788220800000,"y":21164900},{"x":1788307200000,"y":22077800},{"x":1788393600000,"y":24006400},{"x":1788480000000,"y":40190000},{"x":1788825600000,"y":33865500},{"x":1788912000000,"y":22779600},{"x":1788998400000,"y":20049000},{"x":1789084800000,"y":22237800},{"x":1789344000000,"y":30945100},{"x":1789430400000,"y":28027400},{"x":1789516800000,"y":25303100},{"x":1789603200000,"y":8161357}];
+const sma50Data = [{"x":1726531200000,"y":66.03},{"x":1726617600000,"y":66.04},{"x":1726704000000,"y":66.1},{"x":1726790400000,"y":66.19},{"x":1727049600000,"y":66.31},{"x":1727136000000,"y":66.44},{"x":1727222400000,"y":66.57},{"x":1727308800000,"y":66.7},{"x":1727395200000,"y":66.83},{"x":1727654400000,"y":66.98},{"x":1727740800000,"y":67.1},{"x":1727827200000,"y":67.23},{"x":1727913600000,"y":67.37},{"x":1728000000000,"y":67.54},{"x":1728259200000,"y":67.69},{"x":1728345600000,"y":67.88},{"x":1728432000000,"y":68.08},{"x":1728518400000,"y":68.29},{"x":1728604800000,"y":68.48},{"x":1728864000000,"y":68.68},{"x":1728950400000,"y":68.9},{"x":1729036800000,"y":69.08},{"x":1729123200000,"y":69.24},{"x":1729209600000,"y":69.5},{"x":1729468800000,"y":69.78},{"x":1729555200000,"y":70.04},{"x":1729641600000,"y":70.24},{"x":1729728000000,"y":70.43},{"x":1729814400000,"y":70.61},{"x":1730073600000,"y":70.76},{"x":1730160000000,"y":70.9},{"x":1730246400000,"y":71.02},{"x":1730332800000,"y":71.13},{"x":1730419200000,"y":71.27},{"x":1730678400000,"y":71.4},{"x":1730764800000,"y":71.56},{"x":1730851200000,"y":71.72},{"x":1730937600000,"y":71.95},{"x":1731024000000,"y":72.16},{"x":1731283200000,"y":72.36},{"x":1731369600000,"y":72.65},{"x":1731456000000,"y":72.95},{"x":1731542400000,"y":73.26},{"x":1731628800000,"y":73.58},{"x":1731888000000,"y":73.92},{"x":1731974400000,"y":74.32},{"x":1732060800000,"y":74.72},{"x":1732147200000,"y":75.14},{"x":1732233600000,"y":75.54},{"x":1732492800000,"y":75.88},{"x":1732579200000,"y":76.21},{"x":1732665600000,"y":76.59},{"x":1732838400000,"y":76.95},{"x":1733097600000,"y":77.34},{"x":1733184000000,"y":77.74},{"x":1733270400000,"y":78.12},{"x":1733356800000,"y":78.51},{"x":1733443200000,"y":78.96},{"x":1733702400000,"y":79.37},{"x":1733788800000,"y":79.78},{"x":1733875200000,"y":80.24},{"x":1733961600000,"y":80.67},{"x":1734048000000,"y":81.09},{"x":1734307200000,"y":81.49},{"x":1734393600000,"y":81.93},{"x":1734480000000,"y":82.26},{"x":1734566400000,"y":82.61},{"x":1734652800000,"y":82.97},{"x":1734912000000,"y":83.35},{"x":1734998400000,"y":83.78},{"x":1735171200000,"y":84.22},{"x":1735257600000,"y":84.63},{"x":1735516800000,"y":85.06},{"x":1735603200000,"y":85.31},{"x":1735776000000,"y":85.54},{"x":1735862400000,"y":85.78},{"x":1736121600000,"y":86.04},{"x":1736208000000,"y":86.29},{"x":1736294400000,"y":86.53},{"x":1736467200000,"y":86.71},{"x":1736726400000,"y":86.87},{"x":1736812800000,"y":87.02},{"x":1736899200000,"y":87.2},{"x":1736985600000,"y":87.38},{"x":1737072000000,"y":87.58},{"x":1737417600000,"y":87.79},{"x":1737504000000,"y":88.14},{"x":1737590400000,"y":88.52},{"x":1737676800000,"y":88.88},{"x":1737936000000,"y":89.22},{"x":1738022400000,"y":89.52},{"x":1738108800000,"y":89.82},{"x":1738195200000,"y":90.09},{"x":1738281600000,"y":90.39},{"x":1738540800000,"y":90.66},{"x":1738627200000,"y":90.9},{"x":1738713600000,"y":91.16},{"x":1738800000000,"y":91.39},{"x":1738886400000,"y":91.63},{"x":1739145600000,"y":91.95},{"x":1739232000000,"y":92.22},{"x":1739318400000,"y":92.52},{"x":1739404800000,"y":92.84},{"x":1739491200000,"y":93.16},{"x":1739836800000,"y":93.42},{"x":1739923200000,"y":93.69},{"x":1740009600000,"y":93.9},{"x":1740096000000,"y":94.04},{"x":1740355200000,"y":94.19},{"x":1740441600000,"y":94.32},{"x":1740528000000,"y":94.42},{"x":1740614400000,"y":94.5},{"x":1740700800000,"y":94.62},{"x":1740960000000,"y":94.73},{"x":1741046400000,"y":94.83},{"x":1741132800000,"y":95.04},{"x":1741219200000,"y":95.05},{"x":1741305600000,"y":95.01},{"x":1741564800000,"y":94.92},{"x":1741651200000,"y":94.85},{"x":1741737600000,"y":94.84},{"x":1741824000000,"y":94.8},{"x":1741910400000,"y":94.84},{"x":1742169600000,"y":94.96},{"x":1742256000000,"y":95.04},{"x":1742342400000,"y":95.2},{"x":1742428800000,"y":95.34},{"x":1742515200000,"y":95.5},{"x":1742774400000,"y":95.69},{"x":1742860800000,"y":96.01},{"x":1742947200000,"y":96.27},{"x":1743033600000,"y":96.57},{"x":1743120000000,"y":96.74},{"x":1743379200000,"y":96.92},{"x":1743465600000,"y":97.06},{"x":1743552000000,"y":97.19},{"x":1743638400000,"y":97.12},{"x":1743724800000,"y":96.86},{"x":1743984000000,"y":96.64},{"x":1744070400000,"y":96.44},{"x":1744156800000,"y":96.39},{"x":1744243200000,"y":96.27},{"x":1744329600000,"y":96.16},{"x":1744588800000,"y":96.07},{"x":1744675200000,"y":96.07},{"x":1744761600000,"y":96.0},{"x":1744848000000,"y":95.92},{"x":1745193600000,"y":95.87},{"x":1745280000000,"y":95.92},{"x":1745366400000,"y":95.96},{"x":1745452800000,"y":96.14},{"x":1745539200000,"y":96.29},{"x":1745798400000,"y":96.42},{"x":1745884800000,"y":96.56},{"x":1745971200000,"y":96.75},{"x":1746057600000,"y":96.93},{"x":1746144000000,"y":97.19},{"x":1746403200000,"y":97.46},{"x":1746489600000,"y":97.75},{"x":1746576000000,"y":98.11},{"x":1746662400000,"y":98.42},{"x":1746748800000,"y":98.77},{"x":1747008000000,"y":99.03},{"x":1747094400000,"y":99.36},{"x":1747180800000,"y":99.72},{"x":1747267200000,"y":100.09},{"x":1747353600000,"y":100.66},{"x":1747612800000,"y":101.26},{"x":1747699200000,"y":101.91},{"x":1747785600000,"y":102.51},{"x":1747872000000,"y":103.05},{"x":1747958400000,"y":103.64},{"x":1748304000000,"y":104.23},{"x":1748390400000,"y":104.74},{"x":1748476800000,"y":105.25},{"x":1748563200000,"y":105.75},{"x":1748822400000,"y":106.29},{"x":1748908800000,"y":106.8},{"x":1748995200000,"y":107.34},{"x":1749081600000,"y":107.84},{"x":1749168000000,"y":108.39},{"x":1749427200000,"y":108.88},{"x":1749513600000,"y":109.42},{"x":1749600000000,"y":109.99},{"x":1749686400000,"y":110.57},{"x":1749772800000,"y":111.12},{"x":1750032000000,"y":111.74},{"x":1750118400000,"y":112.47},{"x":1750204800000,"y":113.18},{"x":1750377600000,"y":113.9},{"x":1750636800000,"y":114.51},{"x":1750723200000,"y":115.23},{"x":1750809600000,"y":115.94},{"x":1750896000000,"y":116.69},{"x":1750982400000,"y":117.39},{"x":1751241600000,"y":118.14},{"x":1751328000000,"y":118.78},{"x":1751414400000,"y":119.38},{"x":1751500800000,"y":119.89},{"x":1751846400000,"y":120.37},{"x":1751932800000,"y":120.73},{"x":1752019200000,"y":121.1},{"x":1752105600000,"y":121.38},{"x":1752192000000,"y":121.62},{"x":1752451200000,"y":121.88},{"x":1752537600000,"y":122.14},{"x":1752624000000,"y":122.32},{"x":1752710400000,"y":122.6},{"x":1752796800000,"y":122.75},{"x":1753056000000,"y":122.9},{"x":1753142400000,"y":122.99},{"x":1753228800000,"y":123.07},{"x":1753315200000,"y":123.21},{"x":1753401600000,"y":123.29},{"x":1753660800000,"y":123.34},{"x":1753747200000,"y":123.32},{"x":1753833600000,"y":123.31},{"x":1753920000000,"y":123.24},{"x":1754006400000,"y":123.18},{"x":1754265600000,"y":123.13},{"x":1754352000000,"y":123.05},{"x":1754438400000,"y":123.03},{"x":1754524800000,"y":122.97},{"x":1754611200000,"y":122.98},{"x":1754870400000,"y":123.05},{"x":1754956800000,"y":123.08},{"x":1755043200000,"y":123.05},{"x":1755129600000,"y":123.08},{"x":1755216000000,"y":123.08},{"x":1755475200000,"y":123.07},{"x":1755561600000,"y":123.01},{"x":1755648000000,"y":122.99},{"x":1755734400000,"y":122.99},{"x":1755820800000,"y":122.96},{"x":1756080000000,"y":122.97},{"x":1756166400000,"y":123.0},{"x":1756252800000,"y":122.99},{"x":1756339200000,"y":123.02},{"x":1756425600000,"y":122.99},{"x":1756771200000,"y":122.95},{"x":1756857600000,"y":122.9},{"x":1756944000000,"y":122.86},{"x":1757030400000,"y":122.79},{"x":1757289600000,"y":122.67},{"x":1757376000000,"y":122.55},{"x":1757462400000,"y":122.37},{"x":1757548800000,"y":122.19},{"x":1757635200000,"y":121.99},{"x":1757894400000,"y":121.8},{"x":1757980800000,"y":121.62},{"x":1758067200000,"y":121.53},{"x":1758153600000,"y":121.37},{"x":1758240000000,"y":121.32},{"x":1758499200000,"y":121.29},{"x":1758585600000,"y":121.2},{"x":1758672000000,"y":121.09},{"x":1758758400000,"y":121.0},{"x":1758844800000,"y":120.88},{"x":1759104000000,"y":120.87},{"x":1759190400000,"y":120.8},{"x":1759276800000,"y":120.76},{"x":1759363200000,"y":120.74},{"x":1759449600000,"y":120.68},{"x":1759708800000,"y":120.65},{"x":1759795200000,"y":120.68},{"x":1759881600000,"y":120.77},{"x":1759968000000,"y":120.86},{"x":1760054400000,"y":120.99},{"x":1760313600000,"y":121.11},{"x":1760400000000,"y":121.19},{"x":1760486400000,"y":121.31},{"x":1760572800000,"y":121.32},{"x":1760659200000,"y":121.35},{"x":1760918400000,"y":121.41},{"x":1761004800000,"y":121.45},{"x":1761091200000,"y":121.24},{"x":1761177600000,"y":121.05},{"x":1761264000000,"y":120.78},{"x":1761523200000,"y":120.49},{"x":1761609600000,"y":120.21},{"x":1761696000000,"y":119.98},{"x":1761782400000,"y":119.73},{"x":1761868800000,"y":119.56},{"x":1762128000000,"y":119.35},{"x":1762214400000,"y":119.1},{"x":1762300800000,"y":118.84},{"x":1762387200000,"y":118.59},{"x":1762473600000,"y":118.33},{"x":1762732800000,"y":118.16},{"x":1762819200000,"y":118.0},{"x":1762905600000,"y":117.87},{"x":1762992000000,"y":117.66},{"x":1763078400000,"y":117.4},{"x":1763337600000,"y":117.11},{"x":1763424000000,"y":116.87},{"x":1763510400000,"y":116.57},{"x":1763596800000,"y":116.28},{"x":1763683200000,"y":115.99},{"x":1763942400000,"y":115.72},{"x":1764028800000,"y":115.41},{"x":1764115200000,"y":115.08},{"x":1764288000000,"y":114.81},{"x":1764547200000,"y":114.54},{"x":1764633600000,"y":114.27},{"x":1764720000000,"y":113.91},{"x":1764806400000,"y":113.57},{"x":1764892800000,"y":113.16},{"x":1765152000000,"y":112.67},{"x":1765238400000,"y":112.19},{"x":1765324800000,"y":111.65},{"x":1765411200000,"y":111.19},{"x":1765497600000,"y":110.77},{"x":1765756800000,"y":110.34},{"x":1765843200000,"y":109.9},{"x":1765929600000,"y":109.42},{"x":1766016000000,"y":108.87},{"x":1766102400000,"y":108.29},{"x":1766361600000,"y":107.72},{"x":1766448000000,"y":107.15},{"x":1766534400000,"y":106.59},{"x":1766707200000,"y":106.08},{"x":1766966400000,"y":105.59},{"x":1767052800000,"y":105.07},{"x":1767139200000,"y":104.47},{"x":1767312000000,"y":103.8},{"x":1767571200000,"y":103.4},{"x":1767657600000,"y":102.99},{"x":1767744000000,"y":102.61},{"x":1767830400000,"y":102.23},{"x":1767916800000,"y":101.82},{"x":1768176000000,"y":101.4},{"x":1768262400000,"y":101.03},{"x":1768348800000,"y":100.57},{"x":1768435200000,"y":100.13},{"x":1768521600000,"y":99.7},{"x":1768867200000,"y":99.25},{"x":1768953600000,"y":98.76},{"x":1769040000000,"y":98.22},{"x":1769126400000,"y":97.71},{"x":1769385600000,"y":97.15},{"x":1769472000000,"y":96.54},{"x":1769558400000,"y":95.93},{"x":1769644800000,"y":95.37},{"x":1769731200000,"y":94.83},{"x":1769990400000,"y":94.21},{"x":1770076800000,"y":93.6},{"x":1770163200000,"y":93.09},{"x":1770249600000,"y":92.63},{"x":1770336000000,"y":92.13},{"x":1770595200000,"y":91.67},{"x":1770681600000,"y":91.19},{"x":1770768000000,"y":90.63},{"x":1770854400000,"y":89.97},{"x":1770940800000,"y":89.32},{"x":1771286400000,"y":88.78},{"x":1771372800000,"y":88.27},{"x":1771459200000,"y":87.81},{"x":1771545600000,"y":87.45},{"x":1771804800000,"y":87.03},{"x":1771891200000,"y":86.74},{"x":1771977600000,"y":86.51},{"x":1772064000000,"y":86.3},{"x":1772150400000,"y":86.35},{"x":1772409600000,"y":86.4},{"x":1772496000000,"y":86.46},{"x":1772582400000,"y":86.55},{"x":1772668800000,"y":86.65},{"x":1772755200000,"y":86.76},{"x":1773014400000,"y":86.86},{"x":1773100800000,"y":86.93},{"x":1773187200000,"y":86.93},{"x":1773273600000,"y":86.94},{"x":1773360000000,"y":86.97},{"x":1773619200000,"y":87.0},{"x":1773705600000,"y":87.06},{"x":1773792000000,"y":87.13},{"x":1773878400000,"y":87.15},{"x":1773964800000,"y":87.17},{"x":1774224000000,"y":87.23},{"x":1774310400000,"y":87.26},{"x":1774396800000,"y":87.32},{"x":1774483200000,"y":87.38},{"x":1774569600000,"y":87.47},{"x":1774828800000,"y":87.57},{"x":1774915200000,"y":87.73},{"x":1775001600000,"y":87.9},{"x":1775088000000,"y":88.17},{"x":1775433600000,"y":88.47},{"x":1775520000000,"y":88.73},{"x":1775606400000,"y":89.0},{"x":1775692800000,"y":89.33},{"x":1775779200000,"y":89.7},{"x":1776038400000,"y":90.1},{"x":1776124800000,"y":90.55},{"x":1776211200000,"y":91.05},{"x":1776297600000,"y":91.61},{"x":1776384000000,"y":91.95},{"x":1776643200000,"y":92.23},{"x":1776729600000,"y":92.44},{"x":1776816000000,"y":92.68},{"x":1776902400000,"y":92.89},{"x":1776988800000,"y":93.14},{"x":1777248000000,"y":93.45},{"x":1777334400000,"y":93.76},{"x":1777420800000,"y":94.07},{"x":1777507200000,"y":94.38},{"x":1777593600000,"y":94.68},{"x":1777852800000,"y":94.93},{"x":1777939200000,"y":95.16},{"x":1778025600000,"y":95.37},{"x":1778112000000,"y":95.48},{"x":1778198400000,"y":95.54},{"x":1778457600000,"y":95.32},{"x":1778544000000,"y":95.13},{"x":1778630400000,"y":94.93},{"x":1778716800000,"y":94.7},{"x":1778803200000,"y":94.45},{"x":1779062400000,"y":94.26},{"x":1779148800000,"y":94.08},{"x":1779235200000,"y":93.91},{"x":1779321600000,"y":93.8},{"x":1779408000000,"y":93.68},{"x":1779753600000,"y":93.53},{"x":1779840000000,"y":93.37},{"x":1779926400000,"y":93.21},{"x":1780012800000,"y":93.04},{"x":1780272000000,"y":92.92},{"x":1780358400000,"y":92.75},{"x":1780444800000,"y":92.51},{"x":1780531200000,"y":92.33},{"x":1780617600000,"y":92.12},{"x":1780876800000,"y":91.91},{"x":1780963200000,"y":91.67},{"x":1781049600000,"y":91.45},{"x":1781136000000,"y":91.15},{"x":1781222400000,"y":90.85},{"x":1781481600000,"y":90.51},{"x":1781568000000,"y":90.11},{"x":1781654400000,"y":89.67},{"x":1781740800000,"y":89.23},{"x":1782086400000,"y":88.64},{"x":1782172800000,"y":88.04},{"x":1782259200000,"y":87.41},{"x":1782345600000,"y":86.71},{"x":1782432000000,"y":86.03},{"x":1782691200000,"y":85.35},{"x":1782777600000,"y":84.83},{"x":1782864000000,"y":84.42},{"x":1782950400000,"y":84.12},{"x":1783296000000,"y":83.77},{"x":1783382400000,"y":83.44},{"x":1783468800000,"y":83.11},{"x":1783555200000,"y":82.79},{"x":1783641600000,"y":82.41},{"x":1783900800000,"y":82.04},{"x":1783987200000,"y":81.64},{"x":1784073600000,"y":81.27},{"x":1784160000000,"y":80.94},{"x":1784246400000,"y":80.56},{"x":1784505600000,"y":80.15},{"x":1784592000000,"y":79.76},{"x":1784678400000,"y":79.38},{"x":1784764800000,"y":79.05},{"x":1784851200000,"y":78.69},{"x":1785110400000,"y":78.35},{"x":1785196800000,"y":78.06},{"x":1785283200000,"y":77.79},{"x":1785369600000,"y":77.46},{"x":1785456000000,"y":77.11},{"x":1785715200000,"y":76.82},{"x":1785801600000,"y":76.5},{"x":1785888000000,"y":76.21},{"x":1785974400000,"y":75.93},{"x":1786060800000,"y":75.67},{"x":1786320000000,"y":75.47},{"x":1786406400000,"y":75.24},{"x":1786492800000,"y":75.01},{"x":1786579200000,"y":74.91},{"x":1786665600000,"y":74.84},{"x":1786924800000,"y":74.73},{"x":1787011200000,"y":74.64},{"x":1787097600000,"y":74.59},{"x":1787184000000,"y":74.57},{"x":1787270400000,"y":74.52},{"x":1787529600000,"y":74.5},{"x":1787616000000,"y":74.53},{"x":1787702400000,"y":74.53},{"x":1787788800000,"y":74.55},{"x":1787875200000,"y":74.65},{"x":1788134400000,"y":74.72},{"x":1788220800000,"y":74.88},{"x":1788307200000,"y":75.08},{"x":1788393600000,"y":75.29},{"x":1788480000000,"y":75.44},{"x":1788825600000,"y":75.5},{"x":1788912000000,"y":75.54},{"x":1788998400000,"y":75.64},{"x":1789084800000,"y":75.7},{"x":1789344000000,"y":75.75},{"x":1789430400000,"y":75.79},{"x":1789516800000,"y":75.8},{"x":1789603200000,"y":75.79}];
+const sma200Data = [{"x":1726531200000,"y":60.06},{"x":1726617600000,"y":60.17},{"x":1726704000000,"y":60.29},{"x":1726790400000,"y":60.41},{"x":1727049600000,"y":60.54},{"x":1727136000000,"y":60.68},{"x":1727222400000,"y":60.81},{"x":1727308800000,"y":60.94},{"x":1727395200000,"y":61.06},{"x":1727654400000,"y":61.19},{"x":1727740800000,"y":61.3},{"x":1727827200000,"y":61.42},{"x":1727913600000,"y":61.54},{"x":1728000000000,"y":61.65},{"x":1728259200000,"y":61.76},{"x":1728345600000,"y":61.87},{"x":1728432000000,"y":61.99},{"x":1728518400000,"y":62.11},{"x":1728604800000,"y":62.23},{"x":1728864000000,"y":62.34},{"x":1728950400000,"y":62.45},{"x":1729036800000,"y":62.55},{"x":1729123200000,"y":62.66},{"x":1729209600000,"y":62.81},{"x":1729468800000,"y":62.96},{"x":1729555200000,"y":63.1},{"x":1729641600000,"y":63.24},{"x":1729728000000,"y":63.37},{"x":1729814400000,"y":63.51},{"x":1730073600000,"y":63.64},{"x":1730160000000,"y":63.77},{"x":1730246400000,"y":63.91},{"x":1730332800000,"y":64.05},{"x":1730419200000,"y":64.18},{"x":1730678400000,"y":64.32},{"x":1730764800000,"y":64.46},{"x":1730851200000,"y":64.6},{"x":1730937600000,"y":64.73},{"x":1731024000000,"y":64.84},{"x":1731283200000,"y":64.96},{"x":1731369600000,"y":65.08},{"x":1731456000000,"y":65.22},{"x":1731542400000,"y":65.35},{"x":1731628800000,"y":65.48},{"x":1731888000000,"y":65.62},{"x":1731974400000,"y":65.78},{"x":1732060800000,"y":65.94},{"x":1732147200000,"y":66.11},{"x":1732233600000,"y":66.28},{"x":1732492800000,"y":66.43},{"x":1732579200000,"y":66.59},{"x":1732665600000,"y":66.75},{"x":1732838400000,"y":66.91},{"x":1733097600000,"y":67.06},{"x":1733184000000,"y":67.22},{"x":1733270400000,"y":67.39},{"x":1733356800000,"y":67.56},{"x":1733443200000,"y":67.73},{"x":1733702400000,"y":67.9},{"x":1733788800000,"y":68.06},{"x":1733875200000,"y":68.23},{"x":1733961600000,"y":68.39},{"x":1734048000000,"y":68.55},{"x":1734307200000,"y":68.7},{"x":1734393600000,"y":68.85},{"x":1734480000000,"y":69.0},{"x":1734566400000,"y":69.15},{"x":1734652800000,"y":69.3},{"x":1734912000000,"y":69.45},{"x":1734998400000,"y":69.62},{"x":1735171200000,"y":69.77},{"x":1735257600000,"y":69.92},{"x":1735516800000,"y":70.07},{"x":1735603200000,"y":70.21},{"x":1735776000000,"y":70.34},{"x":1735862400000,"y":70.47},{"x":1736121600000,"y":70.6},{"x":1736208000000,"y":70.73},{"x":1736294400000,"y":70.85},{"x":1736467200000,"y":70.96},{"x":1736726400000,"y":71.06},{"x":1736812800000,"y":71.17},{"x":1736899200000,"y":71.29},{"x":1736985600000,"y":71.41},{"x":1737072000000,"y":71.53},{"x":1737417600000,"y":71.65},{"x":1737504000000,"y":71.82},{"x":1737590400000,"y":71.99},{"x":1737676800000,"y":72.17},{"x":1737936000000,"y":72.34},{"x":1738022400000,"y":72.52},{"x":1738108800000,"y":72.69},{"x":1738195200000,"y":72.87},{"x":1738281600000,"y":73.05},{"x":1738540800000,"y":73.23},{"x":1738627200000,"y":73.42},{"x":1738713600000,"y":73.62},{"x":1738800000000,"y":73.86},{"x":1738886400000,"y":74.08},{"x":1739145600000,"y":74.31},{"x":1739232000000,"y":74.54},{"x":1739318400000,"y":74.77},{"x":1739404800000,"y":75.01},{"x":1739491200000,"y":75.26},{"x":1739836800000,"y":75.5},{"x":1739923200000,"y":75.75},{"x":1740009600000,"y":75.98},{"x":1740096000000,"y":76.19},{"x":1740355200000,"y":76.38},{"x":1740441600000,"y":76.57},{"x":1740528000000,"y":76.76},{"x":1740614400000,"y":76.94},{"x":1740700800000,"y":77.12},{"x":1740960000000,"y":77.3},{"x":1741046400000,"y":77.48},{"x":1741132800000,"y":77.67},{"x":1741219200000,"y":77.81},{"x":1741305600000,"y":77.95},{"x":1741564800000,"y":78.06},{"x":1741651200000,"y":78.19},{"x":1741737600000,"y":78.32},{"x":1741824000000,"y":78.45},{"x":1741910400000,"y":78.59},{"x":1742169600000,"y":78.74},{"x":1742256000000,"y":78.88},{"x":1742342400000,"y":79.03},{"x":1742428800000,"y":79.19},{"x":1742515200000,"y":79.35},{"x":1742774400000,"y":79.52},{"x":1742860800000,"y":79.69},{"x":1742947200000,"y":79.85},{"x":1743033600000,"y":80.02},{"x":1743120000000,"y":80.17},{"x":1743379200000,"y":80.31},{"x":1743465600000,"y":80.45},{"x":1743552000000,"y":80.59},{"x":1743638400000,"y":80.71},{"x":1743724800000,"y":80.8},{"x":1743984000000,"y":80.89},{"x":1744070400000,"y":80.99},{"x":1744156800000,"y":81.12},{"x":1744243200000,"y":81.25},{"x":1744329600000,"y":81.37},{"x":1744588800000,"y":81.49},{"x":1744675200000,"y":81.64},{"x":1744761600000,"y":81.78},{"x":1744848000000,"y":81.93},{"x":1745193600000,"y":82.09},{"x":1745280000000,"y":82.27},{"x":1745366400000,"y":82.45},{"x":1745452800000,"y":82.65},{"x":1745539200000,"y":82.86},{"x":1745798400000,"y":83.08},{"x":1745884800000,"y":83.31},{"x":1745971200000,"y":83.55},{"x":1746057600000,"y":83.79},{"x":1746144000000,"y":84.04},{"x":1746403200000,"y":84.29},{"x":1746489600000,"y":84.53},{"x":1746576000000,"y":84.8},{"x":1746662400000,"y":85.04},{"x":1746748800000,"y":85.29},{"x":1747008000000,"y":85.53},{"x":1747094400000,"y":85.78},{"x":1747180800000,"y":86.04},{"x":1747267200000,"y":86.32},{"x":1747353600000,"y":86.6},{"x":1747612800000,"y":86.88},{"x":1747699200000,"y":87.17},{"x":1747785600000,"y":87.46},{"x":1747872000000,"y":87.75},{"x":1747958400000,"y":88.04},{"x":1748304000000,"y":88.34},{"x":1748390400000,"y":88.63},{"x":1748476800000,"y":88.9},{"x":1748563200000,"y":89.19},{"x":1748822400000,"y":89.48},{"x":1748908800000,"y":89.75},{"x":1748995200000,"y":90.04},{"x":1749081600000,"y":90.33},{"x":1749168000000,"y":90.61},{"x":1749427200000,"y":90.87},{"x":1749513600000,"y":91.12},{"x":1749600000000,"y":91.39},{"x":1749686400000,"y":91.65},{"x":1749772800000,"y":91.92},{"x":1750032000000,"y":92.18},{"x":1750118400000,"y":92.45},{"x":1750204800000,"y":92.71},{"x":1750377600000,"y":92.98},{"x":1750636800000,"y":93.27},{"x":1750723200000,"y":93.57},{"x":1750809600000,"y":93.86},{"x":1750896000000,"y":94.18},{"x":1750982400000,"y":94.51},{"x":1751241600000,"y":94.84},{"x":1751328000000,"y":95.15},{"x":1751414400000,"y":95.45},{"x":1751500800000,"y":95.75},{"x":1751846400000,"y":96.04},{"x":1751932800000,"y":96.33},{"x":1752019200000,"y":96.63},{"x":1752105600000,"y":96.9},{"x":1752192000000,"y":97.17},{"x":1752451200000,"y":97.45},{"x":1752537600000,"y":97.72},{"x":1752624000000,"y":97.98},{"x":1752710400000,"y":98.26},{"x":1752796800000,"y":98.51},{"x":1753056000000,"y":98.78},{"x":1753142400000,"y":99.02},{"x":1753228800000,"y":99.25},{"x":1753315200000,"y":99.49},{"x":1753401600000,"y":99.72},{"x":1753660800000,"y":99.95},{"x":1753747200000,"y":100.18},{"x":1753833600000,"y":100.41},{"x":1753920000000,"y":100.62},{"x":1754006400000,"y":100.84},{"x":1754265600000,"y":101.07},{"x":1754352000000,"y":101.29},{"x":1754438400000,"y":101.53},{"x":1754524800000,"y":101.77},{"x":1754611200000,"y":102.0},{"x":1754870400000,"y":102.22},{"x":1754956800000,"y":102.45},{"x":1755043200000,"y":102.68},{"x":1755129600000,"y":102.92},{"x":1755216000000,"y":103.16},{"x":1755475200000,"y":103.41},{"x":1755561600000,"y":103.63},{"x":1755648000000,"y":103.86},{"x":1755734400000,"y":104.09},{"x":1755820800000,"y":104.31},{"x":1756080000000,"y":104.55},{"x":1756166400000,"y":104.78},{"x":1756252800000,"y":105.0},{"x":1756339200000,"y":105.22},{"x":1756425600000,"y":105.42},{"x":1756771200000,"y":105.63},{"x":1756857600000,"y":105.83},{"x":1756944000000,"y":106.04},{"x":1757030400000,"y":106.25},{"x":1757289600000,"y":106.46},{"x":1757376000000,"y":106.66},{"x":1757462400000,"y":106.85},{"x":1757548800000,"y":107.01},{"x":1757635200000,"y":107.16},{"x":1757894400000,"y":107.31},{"x":1757980800000,"y":107.48},{"x":1758067200000,"y":107.66},{"x":1758153600000,"y":107.82},{"x":1758240000000,"y":107.99},{"x":1758499200000,"y":108.16},{"x":1758585600000,"y":108.31},{"x":1758672000000,"y":108.46},{"x":1758758400000,"y":108.61},{"x":1758844800000,"y":108.74},{"x":1759104000000,"y":108.89},{"x":1759190400000,"y":109.03},{"x":1759276800000,"y":109.15},{"x":1759363200000,"y":109.27},{"x":1759449600000,"y":109.39},{"x":1759708800000,"y":109.51},{"x":1759795200000,"y":109.64},{"x":1759881600000,"y":109.81},{"x":1759968000000,"y":109.97},{"x":1760054400000,"y":110.13},{"x":1760313600000,"y":110.28},{"x":1760400000000,"y":110.42},{"x":1760486400000,"y":110.56},{"x":1760572800000,"y":110.7},{"x":1760659200000,"y":110.85},{"x":1760918400000,"y":111.02},{"x":1761004800000,"y":111.2},{"x":1761091200000,"y":111.32},{"x":1761177600000,"y":111.43},{"x":1761264000000,"y":111.54},{"x":1761523200000,"y":111.65},{"x":1761609600000,"y":111.78},{"x":1761696000000,"y":111.91},{"x":1761782400000,"y":112.04},{"x":1761868800000,"y":112.18},{"x":1762128000000,"y":112.31},{"x":1762214400000,"y":112.42},{"x":1762300800000,"y":112.54},{"x":1762387200000,"y":112.61},{"x":1762473600000,"y":112.67},{"x":1762732800000,"y":112.74},{"x":1762819200000,"y":112.82},{"x":1762905600000,"y":112.92},{"x":1762992000000,"y":113.0},{"x":1763078400000,"y":113.07},{"x":1763337600000,"y":113.14},{"x":1763424000000,"y":113.22},{"x":1763510400000,"y":113.27},{"x":1763596800000,"y":113.29},{"x":1763683200000,"y":113.31},{"x":1763942400000,"y":113.33},{"x":1764028800000,"y":113.34},{"x":1764115200000,"y":113.37},{"x":1764288000000,"y":113.39},{"x":1764547200000,"y":113.42},{"x":1764633600000,"y":113.43},{"x":1764720000000,"y":113.44},{"x":1764806400000,"y":113.43},{"x":1764892800000,"y":113.42},{"x":1765152000000,"y":113.4},{"x":1765238400000,"y":113.39},{"x":1765324800000,"y":113.37},{"x":1765411200000,"y":113.34},{"x":1765497600000,"y":113.34},{"x":1765756800000,"y":113.32},{"x":1765843200000,"y":113.3},{"x":1765929600000,"y":113.29},{"x":1766016000000,"y":113.26},{"x":1766102400000,"y":113.28},{"x":1766361600000,"y":113.3},{"x":1766448000000,"y":113.34},{"x":1766534400000,"y":113.36},{"x":1766707200000,"y":113.37},{"x":1766966400000,"y":113.4},{"x":1767052800000,"y":113.41},{"x":1767139200000,"y":113.4},{"x":1767312000000,"y":113.39},{"x":1767571200000,"y":113.37},{"x":1767657600000,"y":113.34},{"x":1767744000000,"y":113.32},{"x":1767830400000,"y":113.28},{"x":1767916800000,"y":113.23},{"x":1768176000000,"y":113.2},{"x":1768262400000,"y":113.16},{"x":1768348800000,"y":113.13},{"x":1768435200000,"y":113.11},{"x":1768521600000,"y":113.08},{"x":1768867200000,"y":113.05},{"x":1768953600000,"y":113.02},{"x":1769040000000,"y":113.01},{"x":1769126400000,"y":113.01},{"x":1769385600000,"y":113.0},{"x":1769472000000,"y":112.96},{"x":1769558400000,"y":112.92},{"x":1769644800000,"y":112.88},{"x":1769731200000,"y":112.83},{"x":1769990400000,"y":112.75},{"x":1770076800000,"y":112.67},{"x":1770163200000,"y":112.59},{"x":1770249600000,"y":112.5},{"x":1770336000000,"y":112.39},{"x":1770595200000,"y":112.27},{"x":1770681600000,"y":112.13},{"x":1770768000000,"y":111.98},{"x":1770854400000,"y":111.8},{"x":1770940800000,"y":111.63},{"x":1771286400000,"y":111.44},{"x":1771372800000,"y":111.27},{"x":1771459200000,"y":111.07},{"x":1771545600000,"y":110.9},{"x":1771804800000,"y":110.71},{"x":1771891200000,"y":110.52},{"x":1771977600000,"y":110.37},{"x":1772064000000,"y":110.22},{"x":1772150400000,"y":110.14},{"x":1772409600000,"y":110.06},{"x":1772496000000,"y":109.97},{"x":1772582400000,"y":109.88},{"x":1772668800000,"y":109.78},{"x":1772755200000,"y":109.68},{"x":1773014400000,"y":109.57},{"x":1773100800000,"y":109.46},{"x":1773187200000,"y":109.34},{"x":1773273600000,"y":109.22},{"x":1773360000000,"y":109.09},{"x":1773619200000,"y":108.96},{"x":1773705600000,"y":108.84},{"x":1773792000000,"y":108.71},{"x":1773878400000,"y":108.56},{"x":1773964800000,"y":108.41},{"x":1774224000000,"y":108.26},{"x":1774310400000,"y":108.09},{"x":1774396800000,"y":107.93},{"x":1774483200000,"y":107.78},{"x":1774569600000,"y":107.65},{"x":1774828800000,"y":107.5},{"x":1774915200000,"y":107.38},{"x":1775001600000,"y":107.25},{"x":1775088000000,"y":107.13},{"x":1775433600000,"y":107.01},{"x":1775520000000,"y":106.9},{"x":1775606400000,"y":106.78},{"x":1775692800000,"y":106.66},{"x":1775779200000,"y":106.54},{"x":1776038400000,"y":106.41},{"x":1776124800000,"y":106.29},{"x":1776211200000,"y":106.17},{"x":1776297600000,"y":106.04},{"x":1776384000000,"y":105.88},{"x":1776643200000,"y":105.71},{"x":1776729600000,"y":105.52},{"x":1776816000000,"y":105.35},{"x":1776902400000,"y":105.17},{"x":1776988800000,"y":104.99},{"x":1777248000000,"y":104.82},{"x":1777334400000,"y":104.66},{"x":1777420800000,"y":104.49},{"x":1777507200000,"y":104.33},{"x":1777593600000,"y":104.16},{"x":1777852800000,"y":103.98},{"x":1777939200000,"y":103.82},{"x":1778025600000,"y":103.64},{"x":1778112000000,"y":103.49},{"x":1778198400000,"y":103.34},{"x":1778457600000,"y":103.17},{"x":1778544000000,"y":103.02},{"x":1778630400000,"y":102.87},{"x":1778716800000,"y":102.72},{"x":1778803200000,"y":102.56},{"x":1779062400000,"y":102.43},{"x":1779148800000,"y":102.3},{"x":1779235200000,"y":102.16},{"x":1779321600000,"y":102.03},{"x":1779408000000,"y":101.88},{"x":1779753600000,"y":101.73},{"x":1779840000000,"y":101.56},{"x":1779926400000,"y":101.38},{"x":1780012800000,"y":101.2},{"x":1780272000000,"y":101.03},{"x":1780358400000,"y":100.83},{"x":1780444800000,"y":100.62},{"x":1780531200000,"y":100.4},{"x":1780617600000,"y":100.21},{"x":1780876800000,"y":100.01},{"x":1780963200000,"y":99.82},{"x":1781049600000,"y":99.62},{"x":1781136000000,"y":99.42},{"x":1781222400000,"y":99.21},{"x":1781481600000,"y":99.01},{"x":1781568000000,"y":98.78},{"x":1781654400000,"y":98.57},{"x":1781740800000,"y":98.35},{"x":1782086400000,"y":98.1},{"x":1782172800000,"y":97.83},{"x":1782259200000,"y":97.57},{"x":1782345600000,"y":97.3},{"x":1782432000000,"y":97.04},{"x":1782691200000,"y":96.78},{"x":1782777600000,"y":96.54},{"x":1782864000000,"y":96.32},{"x":1782950400000,"y":96.1},{"x":1783296000000,"y":95.88},{"x":1783382400000,"y":95.65},{"x":1783468800000,"y":95.42},{"x":1783555200000,"y":95.19},{"x":1783641600000,"y":94.94},{"x":1783900800000,"y":94.7},{"x":1783987200000,"y":94.47},{"x":1784073600000,"y":94.23},{"x":1784160000000,"y":94.0},{"x":1784246400000,"y":93.74},{"x":1784505600000,"y":93.48},{"x":1784592000000,"y":93.23},{"x":1784678400000,"y":93.0},{"x":1784764800000,"y":92.76},{"x":1784851200000,"y":92.53},{"x":1785110400000,"y":92.29},{"x":1785196800000,"y":92.04},{"x":1785283200000,"y":91.8},{"x":1785369600000,"y":91.55},{"x":1785456000000,"y":91.3},{"x":1785715200000,"y":91.06},{"x":1785801600000,"y":90.83},{"x":1785888000000,"y":90.61},{"x":1785974400000,"y":90.37},{"x":1786060800000,"y":90.13},{"x":1786320000000,"y":89.89},{"x":1786406400000,"y":89.7},{"x":1786492800000,"y":89.52},{"x":1786579200000,"y":89.36},{"x":1786665600000,"y":89.2},{"x":1786924800000,"y":89.03},{"x":1787011200000,"y":88.87},{"x":1787097600000,"y":88.73},{"x":1787184000000,"y":88.57},{"x":1787270400000,"y":88.42},{"x":1787529600000,"y":88.27},{"x":1787616000000,"y":88.13},{"x":1787702400000,"y":87.99},{"x":1787788800000,"y":87.84},{"x":1787875200000,"y":87.69},{"x":1788134400000,"y":87.52},{"x":1788220800000,"y":87.35},{"x":1788307200000,"y":87.19},{"x":1788393600000,"y":87.04},{"x":1788480000000,"y":86.88},{"x":1788825600000,"y":86.7},{"x":1788912000000,"y":86.53},{"x":1788998400000,"y":86.38},{"x":1789084800000,"y":86.24},{"x":1789344000000,"y":86.11},{"x":1789430400000,"y":85.98},{"x":1789516800000,"y":85.83},{"x":1789603200000,"y":85.67}];
+const events = [{"date": "2025-10-22", "label": "Q3 2025 −10% (tassa Brasile)", "color": "#FBBF24", "ts": 1761091200000}, {"date": "2025-11-17", "label": "Split 10:1", "color": "#A78BFA", "ts": 1763337600000}, {"date": "2025-12-05", "label": "Accordo Warner Bros.", "color": "#F472B6", "ts": 1764892800000}, {"date": "2026-02-10", "label": "Trump vende $1-5M", "color": "#FCD34D", "ts": 1770681600000}, {"date": "2026-02-27", "label": "Addio a Warner Bros. +14%", "color": "#F472B6", "ts": 1772150400000}, {"date": "2026-04-17", "label": "Q1 2026 −10% e uscita Hastings", "color": "#FBBF24", "ts": 1776384000000}, {"date": "2026-07-17", "label": "Q2 2026 −7%", "color": "#FBBF24", "ts": 1784246400000}, {"date": "2026-08-13", "label": "Ackman compra", "color": "#34D399", "ts": 1786579200000}];
+
+// Custom plugin: draw candles after datasets render
+const candlePlugin = {
+  id: 'candleRenderer',
+  afterDatasetsDraw(chart) {
+    if (chart.canvas.id !== 'priceChart') return;
+    const { ctx, scales: { x, y }, chartArea } = chart;
+    
+    // Calcolo larghezza candela proporzionale
+    let candleWidth = 3;
+    if (candleData.length >= 2) {
+      const x0 = x.getPixelForValue(candleData[0].x);
+      const x1 = x.getPixelForValue(candleData[1].x);
+      candleWidth = Math.max(1.5, Math.abs(x1 - x0) * 0.7);
+    }
+    
+    ctx.save();
+    candleData.forEach(d => {
+      const cx = x.getPixelForValue(d.x);
+      if (cx < chartArea.left - 5 || cx > chartArea.right + 5) return;
+      const yO = y.getPixelForValue(d.o);
+      const yH = y.getPixelForValue(d.h);
+      const yL = y.getPixelForValue(d.l);
+      const yC = y.getPixelForValue(d.c);
+      const bullish = d.c >= d.o;
+      const color = bullish ? '#10B981' : '#EF4444';
+      
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx, yH);
+      ctx.lineTo(cx, yL);
+      ctx.stroke();
+      
+      ctx.fillStyle = color;
+      const bodyTop = Math.min(yO, yC);
+      const bodyHeight = Math.max(1, Math.abs(yC - yO));
+      ctx.fillRect(cx - candleWidth/2, bodyTop, candleWidth, bodyHeight);
+    });
+    ctx.restore();
+  }
+};
+
+const eventLinePlugin = {
+  id: 'eventLines',
+  afterDatasetsDraw(chart) {
+    if (chart.canvas.id !== 'priceChart') return;
+    const { ctx, scales: { x }, chartArea } = chart;
+    ctx.save();
+    ctx.font = 'bold 10px -apple-system, sans-serif';
+    
+    // Ordino eventi per data crescente, ogni evento ottiene il proprio livello dedicato
+    // (livello 0 = primo evento in ordine cronologico, 1 = secondo, ...)
+    // Così non c'è MAI rischio di sovrapposizione anche quando eventi sono vicini.
+    const sorted = events.slice().sort((a, b) => a.ts - b.ts);
+    const labelHeightPx = 16;
+    const topPadding = 10;
+    
+    sorted.forEach((ev, idx) => {
+      const cx = x.getPixelForValue(ev.ts);
+      if (cx < chartArea.left || cx > chartArea.right) return;
+      
+      const labelY = chartArea.top + topPadding + idx * labelHeightPx;
+      
+      // Linea verticale tratteggiata fino al bordo inferiore del chart
+      ctx.strokeStyle = ev.color;
+      ctx.setLineDash([4, 3]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx, chartArea.top);
+      ctx.lineTo(cx, chartArea.bottom);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // Piccolo connettore orizzontale tra label e linea verticale (visivo)
+      ctx.strokeStyle = ev.color;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      
+      // Auto-flip a sinistra se label sforerebbe il bordo destro
+      const textWidth = ctx.measureText(ev.label).width;
+      const wouldOverflowRight = (cx + 14 + textWidth) > chartArea.right;
+      const labelX = wouldOverflowRight ? cx - textWidth - 10 : cx + 8;
+      const bgX = wouldOverflowRight ? cx - textWidth - 13 : cx + 5;
+      
+      // Connettore orizzontale
+      if (wouldOverflowRight) {
+        ctx.moveTo(cx, labelY - 3);
+        ctx.lineTo(cx - 4, labelY - 3);
+      } else {
+        ctx.moveTo(cx, labelY - 3);
+        ctx.lineTo(cx + 4, labelY - 3);
+      }
+      ctx.stroke();
+      
+      // Background semi-trasparente per leggibilità sopra le candele
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+      ctx.fillRect(bgX, labelY - 10, textWidth + 8, 14);
+      
+      // Bordo sottile colorato attorno al box
+      ctx.strokeStyle = ev.color;
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(bgX, labelY - 10, textWidth + 8, 14);
+      
+      // Testo
+      ctx.fillStyle = ev.color;
+      ctx.fillText(ev.label, labelX, labelY);
+    });
+    ctx.restore();
+  }
+};
+
+Chart.register(candlePlugin, eventLinePlugin);
+
+// Main price chart - uso line invisibile come carrier, candele disegnate dal plugin
+const priceCtx = document.getElementById('priceChart').getContext('2d');
+new Chart(priceCtx, {
+  type: 'line',
+  data: {
+    datasets: [
+      {
+        label: 'OHLC carrier',
+        data: candleData.map(d => ({x: d.x, y: d.c})),
+        borderColor: 'transparent',
+        backgroundColor: 'transparent',
+        pointRadius: 0,
+        showLine: false,
+        parsing: false,
+      },
+      {
+        label: 'SMA 50',
+        data: sma50Data,
+        borderColor: '#F59E0B',
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.1,
+        fill: false,
+        parsing: false,
+      },
+      {
+        label: 'SMA 200',
+        data: sma200Data,
+        borderColor: '#3B82F6',
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.1,
+        fill: false,
+        parsing: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    events: [],
+    maintainAspectRatio: false,
+    interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: false }
+    },
+    scales: {
+      x: {
+        type: 'time',
+        time: { unit: 'month', displayFormats: { month: 'MMM yy' } },
+        ticks: { color: '#94A3B8', maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
+        grid: { color: 'rgba(31, 41, 55, 0.5)' }
+      },
+      y: {
+        ticks: { color: '#94A3B8', callback: function(v) { return '$' + v; } },
+        grid: { color: 'rgba(31, 41, 55, 0.5)' },
+        title: { display: true, text: 'USD (split-adj)', color: '#94A3B8', font: { size: 11 } }
+      }
+    }
+  }
+});
+
+// Volume chart
+const volCtx = document.getElementById('volumeChart').getContext('2d');
+new Chart(volCtx, {
+  type: 'bar',
+  data: {
+    datasets: [{
+      label: 'Volume',
+      data: volumeData,
+      backgroundColor: volumeData.map(function(v, i) {
+        if (i === 0) return '#64748B';
+        const prev = candleData[i-1];
+        const curr = candleData[i];
+        if (!prev || !curr) return '#64748B';
+        return curr.c >= prev.c ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)';
+      }),
+      borderWidth: 0,
+      parsing: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    events: [],
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: false }
+    },
+    scales: {
+      x: {
+        type: 'time',
+        time: { unit: 'month' },
+        ticks: { display: false },
+        grid: { display: false }
+      },
+      y: {
+        ticks: { color: '#94A3B8', callback: function(v) { return (v/1e6).toFixed(0) + 'M'; }, maxTicksLimit: 4 },
+        grid: { color: 'rgba(31, 41, 55, 0.5)' },
+        title: { display: true, text: 'Volume', color: '#94A3B8', font: { size: 10 } }
+      }
+    }
+  }
+});
+
+
+
+// === ZOOM 6 MONTHS CHARTS ===
+// Filtra dati ultimi 6 mesi (~180 giorni calendar ≈ 124 trading days)
+const cutoff6M = new Date('2026-03-19').getTime();
+const candleData6M = candleData.filter(d => d.x >= cutoff6M);
+const volumeData6M = volumeData.filter(d => d.x >= cutoff6M);
+const sma50Data6M = sma50Data.filter(d => d.x >= cutoff6M);
+const sma200Data6M = sma200Data.filter(d => d.x >= cutoff6M);
+
+// Plugin candle per il chart 6M (riusa stessa logica ma legge candleData6M)
+const candlePlugin6M = {
+  id: 'candleRenderer6M',
+  afterDatasetsDraw(chart) {
+    if (chart.canvas.id !== 'priceChart6M') return;
+    const { ctx, scales: { x, y }, chartArea } = chart;
+    let candleWidth = 6;
+    if (candleData6M.length >= 2) {
+      const x0 = x.getPixelForValue(candleData6M[0].x);
+      const x1 = x.getPixelForValue(candleData6M[1].x);
+      candleWidth = Math.max(2, Math.abs(x1 - x0) * 0.7);
+    }
+    ctx.save();
+    candleData6M.forEach(d => {
+      const cx = x.getPixelForValue(d.x);
+      if (cx < chartArea.left - 5 || cx > chartArea.right + 5) return;
+      const yO = y.getPixelForValue(d.o);
+      const yH = y.getPixelForValue(d.h);
+      const yL = y.getPixelForValue(d.l);
+      const yC = y.getPixelForValue(d.c);
+      const bullish = d.c >= d.o;
+      const color = bullish ? '#10B981' : '#EF4444';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx, yH);
+      ctx.lineTo(cx, yL);
+      ctx.stroke();
+      ctx.fillStyle = color;
+      const bodyTop = Math.min(yO, yC);
+      const bodyHeight = Math.max(1, Math.abs(yC - yO));
+      ctx.fillRect(cx - candleWidth/2, bodyTop, candleWidth, bodyHeight);
+    });
+    ctx.restore();
+  }
+};
+
+// Plugin event lines per chart 6M (riusa stessa logica del 24M)
+const eventLinePlugin6M = {
+  id: 'eventLines6M',
+  afterDatasetsDraw(chart) {
+    if (chart.canvas.id !== 'priceChart6M') return;
+    const { ctx, scales: { x }, chartArea } = chart;
+    ctx.save();
+    ctx.font = 'bold 10px -apple-system, sans-serif';
+    
+    // Filtra solo eventi dentro il range 6M
+    const sorted = events.slice().filter(e => e.ts >= cutoff6M).sort((a, b) => a.ts - b.ts);
+    const labelHeightPx = 16;
+    const topPadding = 10;
+    
+    sorted.forEach((ev, idx) => {
+      const cx = x.getPixelForValue(ev.ts);
+      if (cx < chartArea.left || cx > chartArea.right) return;
+      const labelY = chartArea.top + topPadding + idx * labelHeightPx;
+      
+      ctx.strokeStyle = ev.color;
+      ctx.setLineDash([4, 3]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx, chartArea.top);
+      ctx.lineTo(cx, chartArea.bottom);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      const textWidth = ctx.measureText(ev.label).width;
+      const wouldOverflowRight = (cx + 14 + textWidth) > chartArea.right;
+      const labelX = wouldOverflowRight ? cx - textWidth - 10 : cx + 8;
+      const bgX = wouldOverflowRight ? cx - textWidth - 13 : cx + 5;
+      
+      ctx.strokeStyle = ev.color;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      if (wouldOverflowRight) {
+        ctx.moveTo(cx, labelY - 3);
+        ctx.lineTo(cx - 4, labelY - 3);
+      } else {
+        ctx.moveTo(cx, labelY - 3);
+        ctx.lineTo(cx + 4, labelY - 3);
+      }
+      ctx.stroke();
+      
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+      ctx.fillRect(bgX, labelY - 10, textWidth + 8, 14);
+      ctx.strokeStyle = ev.color;
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(bgX, labelY - 10, textWidth + 8, 14);
+      
+      ctx.fillStyle = ev.color;
+      ctx.fillText(ev.label, labelX, labelY);
+    });
+    ctx.restore();
+  }
+};
+
+Chart.register(candlePlugin6M, eventLinePlugin6M);
+
+// Price chart 6M
+const priceCtx6M = document.getElementById('priceChart6M').getContext('2d');
+new Chart(priceCtx6M, {
+  type: 'line',
+  data: {
+    datasets: [
+      {
+        label: 'OHLC carrier 6M',
+        data: candleData6M.map(d => ({x: d.x, y: d.c})),
+        borderColor: 'transparent',
+        backgroundColor: 'transparent',
+        pointRadius: 0,
+        showLine: false,
+        parsing: false,
+      },
+      {
+        label: 'SMA 50',
+        data: sma50Data6M,
+        borderColor: '#F59E0B',
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.1,
+        fill: false,
+        parsing: false,
+      },
+      {
+        label: 'SMA 200',
+        data: sma200Data6M,
+        borderColor: '#3B82F6',
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.1,
+        fill: false,
+        parsing: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    events: [],
+    maintainAspectRatio: false,
+    interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: false }
+    },
+    scales: {
+      x: {
+        type: 'time',
+        time: { unit: 'month', displayFormats: { month: 'MMM yy' } },
+        ticks: { color: '#94A3B8', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
+        grid: { color: 'rgba(31, 41, 55, 0.5)' }
+      },
+      y: {
+        ticks: { color: '#94A3B8', callback: function(v) { return '$' + v; } },
+        grid: { color: 'rgba(31, 41, 55, 0.5)' },
+        title: { display: true, text: 'USD', color: '#94A3B8', font: { size: 11 } }
+      }
+    }
+  }
+});
+
+// Volume chart 6M
+const volCtx6M = document.getElementById('volumeChart6M').getContext('2d');
+new Chart(volCtx6M, {
+  type: 'bar',
+  data: {
+    datasets: [{
+      label: 'Volume',
+      data: volumeData6M,
+      backgroundColor: volumeData6M.map(function(v, i) {
+        if (i === 0) return '#64748B';
+        const prev = candleData6M[i-1];
+        const curr = candleData6M[i];
+        if (!prev || !curr) return '#64748B';
+        return curr.c >= prev.c ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)';
+      }),
+      borderWidth: 0,
+      parsing: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    events: [],
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: false }
+    },
+    scales: {
+      x: {
+        type: 'time',
+        time: { unit: 'month' },
+        ticks: { display: false },
+        grid: { display: false }
+      },
+      y: {
+        ticks: { color: '#94A3B8', callback: function(v) { return (v/1e6).toFixed(0) + 'M'; }, maxTicksLimit: 4 },
+        grid: { color: 'rgba(31, 41, 55, 0.5)' },
+        title: { display: true, text: 'Volume', color: '#94A3B8', font: { size: 10 } }
+      }
+    }
+  }
+});
+
+</script>
+
+</body>
+</html>
