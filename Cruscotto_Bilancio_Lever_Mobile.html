@@ -226,6 +226,9 @@
           <select id="sel730"><option value="all">730: tutti</option><option value="y">Solo rimb.</option><option value="n">Non rimb.</option></select>
         </div>
         <div class="qrow">
+          <select id="selTip"><option value="">Tutte le voci</option></select>
+        </div>
+        <div class="qrow">
           <input type="text" id="search" placeholder="Cerca note / fonte / tipologia…">
           <button class="btn ghost qpul" id="btnPulisci">Pulisci</button>
         </div>
@@ -272,7 +275,7 @@ const PAL=["#1f6f5c","#b5462f","#9a7b2e","#3a6b8c","#7a5c9e","#c97b3a","#5a8f4a"
 const gridc="#e6e0d2", tickc="#5a574e";
 
 let RAW=[], charts={}, shown=0;
-let state={ tipo:"all", anni:new Set(), mesi:new Set(), macro:"", r730:"all", q:"",
+let state={ tipo:"all", anni:new Set(), mesi:new Set(), macro:"", tip:"", r730:"all", q:"",
   straord:true, exclInv:true, exclBollInq:true,
   sortK:"date", sortDir:-1, perPage:40 };
 
@@ -336,6 +339,7 @@ function passes(r){
   if(state.anni.size && !state.anni.has(r.anno)) return false;
   if(state.mesi.size && !state.mesi.has(r.mese)) return false;
   if(state.macro && r.macro!==state.macro) return false;
+  if(state.tip && r.tipologia!==state.tip) return false;
   if(state.r730==="y" && !r.r730) return false;
   if(state.r730==="n" && r.r730) return false;
   if(state.straord && r.straord) return false;
@@ -351,6 +355,7 @@ function filteredNoTipo(){
     if(state.anni.size && !state.anni.has(r.anno)) return false;
     if(state.mesi.size && !state.mesi.has(r.mese)) return false;
     if(state.macro && r.macro!==state.macro) return false;
+    if(state.tip && r.tipologia!==state.tip) return false;
     if(state.r730==="y" && !r.r730) return false;
     if(state.r730==="n" && r.r730) return false;
     if(state.straord && r.straord) return false;
@@ -445,7 +450,7 @@ function renderCharts(rows){
       scales:{x:{grace:"6%",grid:{color:gridc},ticks:{color:tickc,font:{family:"IBM Plex Mono",size:9},callback:v=>EUR0(v)}},
         y:{grid:{display:false},ticks:{color:tickc,font:{family:"IBM Plex Sans",size:11}}}},
       onClick:(ev,els,chart)=>{ els=pickEls(ev,els,chart); if(!els.length)return;
-        selTipologia(tp[els[0].index][0]); }   // top = uscite-only → forza Tipo=Uscite
+        selTipologia(tp[els[0].index][0]); }   // top = filtra la voce, Tipo resta Tutti
     }});
 }
 
@@ -469,11 +474,19 @@ function selPeriodo(y,m,tipo){
   } else { setTipo(tipo||"all"); setChips("chAnno",state.anni,[y]); setChips("chMese",state.mesi,[m]); }
   commit();
 }
-/* click su barra top: filtra tipologia, forza Uscite; ri-clic = toggle-off */
+/* click su barra top: imposta la voce, Tipo resta Tutti (acquisti e vendite); ri-clic = toggle-off */
 function selTipologia(t){
-  if(state.q===t && state.tipo==="u"){ state.q=""; document.getElementById("search").value=""; setTipo("all"); }
-  else { setTipo("u"); state.q=t; document.getElementById("search").value=t; }
-  commit();
+  setTipo("all");
+  if(state.tip===t){ state.tip=""; } else { state.tip=t; }
+  fillTip(); commit();
+}
+/* menu Voce: tipologie della macro scelta (o tutte) */
+function fillTip(){
+  const vs=[...new Set(RAW.filter(r=>!state.macro||r.macro===state.macro).map(r=>r.tipologia))].sort((a,b)=>a.localeCompare(b,"it"));
+  if(state.tip && !vs.includes(state.tip)) state.tip="";
+  const sel=document.getElementById("selTip");
+  sel.innerHTML=`<option value="">Tutte le voci</option>`+vs.map(v=>`<option value="${v}">${v}</option>`).join("");
+  sel.value=state.tip;
 }
 
 /* ---- movimenti come lista ---- */
@@ -523,8 +536,15 @@ function buildChips(elId, values, stateSet, label){
     const v=isNaN(c.dataset.v)?c.dataset.v:Number(c.dataset.v);
     c.classList.toggle("on", stateSet.has(v));
     c.addEventListener("click",()=>{
-      if(stateSet.has(v)) stateSet.delete(v); else stateSet.add(v);
-      c.classList.toggle("on");
+      if(elId==="chMese"){
+        // un tocco = solo quel mese; ritocco sull'unico acceso = mesi di default
+        const solo = stateSet.size===1 && stateSet.has(v);
+        const def = defaultMesi(state.anni.size===1?[...state.anni][0]:null);
+        setChips("chMese", stateSet, solo ? def : [v]);
+      } else {
+        if(stateSet.has(v)) stateSet.delete(v); else stateSet.add(v);
+        c.classList.toggle("on");
+      }
       if(elId==="chAnno"||elId==="chMese") snapPeriod();
       shown=state.perPage; render();
     });
@@ -543,6 +563,7 @@ function updateFilterCount(){
   if(state.anni.size) parts.push([...state.anni].sort().join(","));
   if(state.mesi.size) parts.push([...state.mesi].sort((a,b)=>a-b).map(m=>MESI[m]).join(","));
   if(state.macro) parts.push(state.macro);
+  if(state.tip) parts.push(state.tip);
   if(state.r730==="y") parts.push("730 sì"); else if(state.r730==="n") parts.push("730 no");
   if(state.q) parts.push('"'+state.q+'"');
   document.getElementById("fCnt").textContent = parts.length? "· "+parts.join(" · ") : "· tutti";
@@ -559,6 +580,7 @@ function pulisci(){
   const curY=new Date().getFullYear(); const defY=anni.includes(curY)?curY:anni[anni.length-1];
   setChips("chAnno",state.anni,[defY]); setChips("chMese",state.mesi,defaultMesi(defY)); snapPeriod();
   state.macro=""; document.getElementById("selMacro").value="";
+  state.tip=""; fillTip();
   state.r730="all"; document.getElementById("sel730").value="all";
   state.q=""; document.getElementById("search").value="";
   state.straord=true; document.getElementById("tgStraord").checked=true;
@@ -595,6 +617,7 @@ function init(parsed){
   document.getElementById("selMacro").innerHTML = `<option value="">Tutte</option>`+macro.map(m=>`<option value="${m}">${m}</option>`).join("");
   const curY=new Date().getFullYear(); const defY=anni.includes(curY)?curY:anni[anni.length-1];
   setChips("chAnno",state.anni,[defY]); setChips("chMese",state.mesi,defaultMesi(defY)); snapPeriod();
+  fillTip();
 
   // sort chips
   const sr=document.getElementById("sortRow");
@@ -615,7 +638,8 @@ function init(parsed){
   document.getElementById("segTipo").addEventListener("click",e=>{ if(e.target.tagName!=="BUTTON")return;
     document.querySelectorAll("#segTipo button").forEach(b=>b.classList.remove("active"));
     e.target.classList.add("active"); state.tipo=e.target.dataset.v; shown=state.perPage; render(); });
-  document.getElementById("selMacro").addEventListener("change",e=>{state.macro=e.target.value;shown=state.perPage;render();});
+  document.getElementById("selMacro").addEventListener("change",e=>{state.macro=e.target.value;fillTip();shown=state.perPage;render();});
+  document.getElementById("selTip").addEventListener("change",e=>{state.tip=e.target.value;shown=state.perPage;render();});
   document.getElementById("sel730").addEventListener("change",e=>{state.r730=e.target.value;shown=state.perPage;render();});
   let qt; document.getElementById("search").addEventListener("input",e=>{clearTimeout(qt);
     qt=setTimeout(()=>{state.q=e.target.value.trim();shown=state.perPage;render();},250);});
