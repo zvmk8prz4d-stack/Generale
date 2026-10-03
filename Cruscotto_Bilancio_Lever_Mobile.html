@@ -96,11 +96,22 @@
   .toggle input:checked::after{left:21px}
   .fbtns{display:flex; gap:8px; margin-top:12px;}
   .fbtns .btn{flex:1; padding:11px; font-size:14px; border-radius:9px;}
-  .quickf{margin-top:8px; display:flex; flex-direction:column; gap:7px;}
-  .quickf .qrow{display:flex; gap:7px;}
-  .quickf select{flex:1; min-width:0; padding:10px 11px; font-size:14px;}
-  .quickf input[type=text]{flex:1; min-width:0; padding:10px 12px; font-size:14px;}
-  .quickf .qpul{flex:none; padding:10px 16px; font-size:14px; border-radius:9px; white-space:nowrap;}
+  .quickf{margin-top:7px; display:flex; flex-direction:column; gap:7px;}
+  .fbar.compatta .quickf{display:none}
+  .prow{display:flex; gap:6px; align-items:center;}
+  .pill{position:relative; flex:none; display:block; min-width:0; height:34px; border:1px solid var(--line-strong);
+    border-radius:17px; background:#fff; color:var(--ink); font-family:"IBM Plex Sans"; font-size:13px; font-weight:500;}
+  .pill.grow{flex:1 1 0}
+  .pill select{appearance:none; -webkit-appearance:none; width:100%; height:100%; border:0; background:transparent;
+    color:inherit; font:inherit; padding:0 22px 0 12px; border-radius:17px; text-overflow:ellipsis; white-space:nowrap; overflow:hidden;}
+  #p730{width:76px}
+  .pill::after{content:"▾"; position:absolute; right:9px; top:50%; transform:translateY(-52%); font-size:11px; pointer-events:none; opacity:.7}
+  .pill.pbtn::after{content:none}
+  .pill.pbtn{padding:0 11px; cursor:pointer; white-space:nowrap; max-width:110px; overflow:hidden; text-overflow:ellipsis;}
+  .pill.on{background:var(--ink); color:var(--paper); border-color:var(--ink); font-weight:600;}
+  .qsearch{display:none}
+  .qsearch.open{display:block}
+  .qsearch input[type=text]{padding:9px 12px; font-size:15px;}
 
   /* KPI */
   .kpis{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:14px;}
@@ -219,18 +230,17 @@
           <button class="btn ghost" id="btnNew">Nuovo file</button>
         </div>
       </div>
-      <!-- filtri rapidi sempre visibili -->
-      <div class="quickf">
-        <div class="qrow">
-          <select id="selMacro"><option value="">Tutte le macro</option></select>
-          <select id="sel730"><option value="all">730: tutti</option><option value="y">Solo rimb.</option><option value="n">Non rimb.</option></select>
+      <!-- filtri rapidi: pillole, scure quando il filtro è attivo; scorrendo giù si nascondono -->
+      <div class="quickf" id="quickf">
+        <div class="prow">
+          <label class="pill grow" id="pMacro"><select id="selMacro"><option value="">Macro</option></select></label>
+          <label class="pill grow" id="pTip"><select id="selTip"><option value="">Voce</option></select></label>
+          <label class="pill" id="p730"><select id="sel730"><option value="all">730</option><option value="y">Solo rimb.</option><option value="n">Non rimb.</option></select></label>
+          <button class="pill pbtn" id="btnCerca">🔍 Cerca</button>
+          <button class="pill pbtn" id="btnPulisci" aria-label="Pulisci filtri">✕</button>
         </div>
-        <div class="qrow">
-          <select id="selTip"><option value="">Tutte le voci</option></select>
-        </div>
-        <div class="qrow">
+        <div class="qsearch" id="qsearch">
           <input type="text" id="search" placeholder="Cerca note / fonte / tipologia…">
-          <button class="btn ghost qpul" id="btnPulisci">Pulisci</button>
         </div>
       </div>
     </div>
@@ -485,7 +495,7 @@ function fillTip(){
   const vs=[...new Set(RAW.filter(r=>!state.macro||r.macro===state.macro).map(r=>r.tipologia))].sort((a,b)=>a.localeCompare(b,"it"));
   if(state.tip && !vs.includes(state.tip)) state.tip="";
   const sel=document.getElementById("selTip");
-  sel.innerHTML=`<option value="">Tutte le voci</option>`+vs.map(v=>`<option value="${v}">${v}</option>`).join("");
+  sel.innerHTML=`<option value="">Voce</option>`+vs.map(v=>`<option value="${v}">${v}</option>`).join("");
   sel.value=state.tip;
 }
 
@@ -525,8 +535,33 @@ function render(){
   const rows=filtered();
   if(shown===0) shown=state.perPage;
   renderCharts(rows); renderMov(rows);
-  updateFilterCount();
+  updateFilterCount(); updatePills();
 }
+/* pillole dei filtri rapidi: scure quando il filtro e' attivo */
+function updatePills(){
+  document.getElementById("pMacro").classList.toggle("on",!!state.macro);
+  document.getElementById("pTip").classList.toggle("on",!!state.tip);
+  document.getElementById("p730").classList.toggle("on",state.r730!=="all");
+  const bc=document.getElementById("btnCerca");
+  bc.classList.toggle("on",!!state.q); bc.textContent = state.q ? "🔍 "+state.q : "🔍 Cerca";
+}
+/* scorrendo giu' resta solo la riga Filtri; scorrendo su tornano le pillole */
+function setCompatta(on){
+  const fb=document.querySelector(".fbar"); if(fb.classList.contains("compatta")===on) return;
+  if(on){ const q=document.getElementById("quickf"); const h=q.offsetHeight+7;
+    fb.classList.add("compatta"); fb.style.marginBottom=(10+h)+"px"; }   // il margine tiene ferma la pagina
+  else { fb.classList.remove("compatta"); fb.style.marginBottom=""; }
+}
+let lastY=0, accY=0;
+window.addEventListener("scroll",()=>{
+  const y=window.scrollY, d=y-lastY; lastY=y;
+  const busy=document.getElementById("fPanel").classList.contains("open") ||
+    ["search","selMacro","selTip","sel730"].includes(document.activeElement && document.activeElement.id);
+  if(busy || y<80){ accY=0; setCompatta(false); return; }
+  if((d>0&&accY<0)||(d<0&&accY>0)) accY=0;
+  accY+=d;
+  if(accY>30) setCompatta(true); else if(accY<-30) setCompatta(false);
+},{passive:true});
 
 /* ---- chips builder ---- */
 function buildChips(elId, values, stateSet, label){
@@ -582,7 +617,7 @@ function pulisci(){
   state.macro=""; document.getElementById("selMacro").value="";
   state.tip=""; fillTip();
   state.r730="all"; document.getElementById("sel730").value="all";
-  state.q=""; document.getElementById("search").value="";
+  state.q=""; document.getElementById("search").value=""; document.getElementById("qsearch").classList.remove("open");
   state.straord=true; document.getElementById("tgStraord").checked=true;
   state.exclInv=true; document.getElementById("tgInv").checked=true;
   state.exclBollInq=true; document.getElementById("tgBollInq").checked=true;
@@ -614,7 +649,7 @@ function init(parsed){
   const macro=[...new Set(RAW.map(r=>r.macro))].sort();
   buildChips("chAnno",anni,state.anni);
   buildChips("chMese",mesi,state.mesi,v=>MESI[v]);
-  document.getElementById("selMacro").innerHTML = `<option value="">Tutte</option>`+macro.map(m=>`<option value="${m}">${m}</option>`).join("");
+  document.getElementById("selMacro").innerHTML = `<option value="">Macro</option>`+macro.map(m=>`<option value="${m}">${m}</option>`).join("");
   const curY=new Date().getFullYear(); const defY=anni.includes(curY)?curY:anni[anni.length-1];
   setChips("chAnno",state.anni,[defY]); setChips("chMese",state.mesi,defaultMesi(defY)); snapPeriod();
   fillTip();
@@ -647,6 +682,11 @@ function init(parsed){
   document.getElementById("tgInv").addEventListener("change",e=>{state.exclInv=e.target.checked;shown=state.perPage;render();});
   document.getElementById("tgBollInq").addEventListener("change",e=>{state.exclBollInq=e.target.checked;shown=state.perPage;render();});
   document.getElementById("btnPulisci").addEventListener("click",pulisci);
+  document.getElementById("btnCerca").addEventListener("click",()=>{
+    const qs=document.getElementById("qsearch"), inp=document.getElementById("search");
+    if(qs.classList.contains("open") && !inp.value.trim()){ qs.classList.remove("open"); return; }
+    qs.classList.add("open"); inp.focus();
+  });
   document.getElementById("btnExport").addEventListener("click",exportXlsx);
   document.getElementById("btnNew").addEventListener("click",()=>{
     document.getElementById("app").style.display="none"; document.getElementById("loader").style.display="block"; });
