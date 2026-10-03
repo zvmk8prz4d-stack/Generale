@@ -245,7 +245,7 @@
     <!-- TOP 15 SPESE -->
     <div class="card">
       <h3>Top 15 spese</h3>
-      <div class="csub">Solo uscite, per importo decrescente</div>
+      <div class="csub">Spesa netta per voce (uscite meno entrate), per importo decrescente</div>
       <div id="topBox"><div id="topInner"><canvas id="chTop"></canvas></div></div>
     </div>
 
@@ -375,9 +375,9 @@ function byMonth(rows){
 }
 function byMacroUscite(rows){ const m={}; rows.filter(r=>r.tipo==="u").forEach(r=>m[r.macro]=(m[r.macro]||0)+r.usc);
   return Object.entries(m).sort((a,b)=>b[1]-a[1]); }
-function topSpese(){ // solo uscite, top 15
-  const rs=filteredNoTipo().filter(r=>r.tipo==="u");
-  const m={}; rs.forEach(r=>m[r.tipologia]=(m[r.tipologia]||0)+r.usc);
+function topSpese(){ // spesa netta per voce (uscite meno entrate della stessa voce), top 15
+  const rs=filteredNoTipo();
+  const m={}; rs.forEach(r=>m[r.tipologia]=(m[r.tipologia]||0)+r.valore);
   return Object.entries(m).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,15);
 }
 
@@ -442,7 +442,7 @@ function renderCharts(rows){
   const tInner=document.getElementById("topInner");
   if(tInner) tInner.style.height=Math.max(280, tp.length*26+30)+"px";
   mkChart("chTop",{ type:"bar",
-    data:{labels:tp.map(x=>x[0]),datasets:[{label:"Spesa",data:tp.map(x=>x[1]),backgroundColor:"#b5462f",borderRadius:3}]},
+    data:{labels:tp.map(x=>x[0]),datasets:[{label:"Spesa netta",data:tp.map(x=>x[1]),backgroundColor:"#b5462f",borderRadius:3}]},
     options:{ responsive:true,maintainAspectRatio:false,indexAxis:"y",layout:{padding:{left:6,right:48}},
       plugins:{legend:{display:false},
         tooltip:{callbacks:{label:c=>" "+EUR(c.parsed.x)}},
