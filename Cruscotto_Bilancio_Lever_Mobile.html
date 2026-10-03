@@ -427,9 +427,9 @@ function renderCharts(rows){
       plugins:{ legend:{labels:{font:{family:"IBM Plex Sans",size:12},color:tickc,boxWidth:12,padding:8}},
         tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${EUR(c.parsed.y)}`}},
         datalabels:{display:ctx=>mm.keys.length<=8 && ctx.dataset.data[ctx.dataIndex]!=null,
-          anchor:"end",align:"end",rotation:-90,clamp:true,color:tickc,font:{family:"IBM Plex Mono",size:9,weight:600},formatter:labFmt}},
+          anchor:"end",align:"end",rotation:mm.keys.length<=3?0:-90,clamp:true,color:tickc,font:{family:"IBM Plex Mono",size:9,weight:600},formatter:labFmt}},
       scales:{ x:{grid:{display:false},ticks:{color:tickc,font:{family:"IBM Plex Mono",size:9}}},
-        y:{grace:"20%",grid:{color:gridc},ticks:{color:tickc,font:{family:"IBM Plex Mono",size:9},callback:v=>EUR0(v)}}},
+        y:{grace:"30%",grid:{color:gridc},ticks:{color:tickc,font:{family:"IBM Plex Mono",size:9},callback:v=>EUR0(v)}}},
       onClick:(ev,els,chart)=>{ els=pickEls(ev,els,chart); if(!els.length)return;
         const el=els[0]; const [y,m]=mm.keys[el.index].split("-").map(Number);
         // dataset 0=Entrate, 1=Uscite, 2=Diff(tutti)
